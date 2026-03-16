@@ -7,7 +7,6 @@ import {
   Clock3,
   Focus,
   GitCompareArrows,
-  Layers3,
   Moon,
   SearchCode,
   ShieldCheck,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 import { RevealClose, RevealGroup, RevealPanel, RevealTrigger } from 'reveal-ui'
+import { RevealLogoMark } from '@/components/site/logo-mark'
 import {
   Accordion,
   AccordionContent,
@@ -1003,9 +1003,7 @@ export function ShowcasePage() {
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/92 shadow-soft backdrop-blur">
         <div className="container flex min-h-16 items-center justify-between gap-4 px-6 py-3 md:px-8">
           <a className="flex items-center gap-3" href="#overview">
-            <div className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft">
-              <Layers3 className="size-5" />
-            </div>
+            <RevealLogoMark className="size-10 shrink-0 shadow-soft" />
             <div>
               <p className="font-display text-xl tracking-[-0.03em] text-foreground">reveal-ui</p>
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
@@ -1355,9 +1353,12 @@ export function ShowcasePage() {
           <CardContent className="space-y-6 p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-2">
-                <p className="font-display text-3xl tracking-[-0.04em] text-foreground">
-                  reveal-ui
-                </p>
+                <div className="flex items-center gap-3">
+                  <RevealLogoMark className="size-10 shrink-0 shadow-soft" />
+                  <p className="font-display text-3xl tracking-[-0.04em] text-foreground">
+                    reveal-ui
+                  </p>
+                </div>
                 <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                   Persistent-summary disclosure for inline reveal editors, expanding card
                   disclosure, and nested reveal flows in React.

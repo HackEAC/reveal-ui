@@ -1,4 +1,12 @@
+<p align="center">
+  <img alt="reveal-ui logo" src="./assets/logo/reveal-ui-mark.png" width="92" />
+</p>
+
 # reveal-ui
+
+<p align="center">
+  Persistent-summary disclosure for inline reveal editors, expanding card disclosure, and nested reveal flows in React.
+</p>
 
 `reveal-ui` is a React library for persistent-summary disclosure: inline reveal editors,
 expanding card disclosure, and nested reveal flows where the summary stays visible while extra
