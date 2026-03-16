@@ -255,14 +255,14 @@ function getProperty(propertyId: string) {
 
 function toneClass(level: string) {
   if (level === 'Low') {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    return 'bg-emerald-50 text-emerald-700'
   }
 
   if (level === 'Medium') {
-    return 'border-amber-200 bg-amber-50 text-amber-700'
+    return 'bg-amber-50 text-amber-700'
   }
 
-  return 'border-rose-200 bg-rose-50 text-rose-700'
+  return 'bg-rose-50 text-rose-700'
 }
 
 function SectionHeading({
@@ -302,18 +302,16 @@ function PressureCard({
   title,
 }: (typeof pressureCards)[number]) {
   return (
-    <Card className="glass-card h-full rounded-[2rem]">
+    <Card className="glass-card h-full rounded-md">
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className={cn('border px-3 py-1 text-[0.7rem]', toneClass(intensity))}>
+          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(intensity))}>
             user intensity {intensity}
           </Badge>
-          <Badge className={cn('border px-3 py-1 text-[0.7rem]', toneClass(timeWaste))}>
+          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(timeWaste))}>
             time waste {timeWaste}
           </Badge>
-          <Badge
-            className={cn('border px-3 py-1 text-[0.7rem]', toneClass(implementationWeirdness))}
-          >
+          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(implementationWeirdness))}>
             UI weirdness {implementationWeirdness}
           </Badge>
         </div>
@@ -325,7 +323,7 @@ function PressureCard({
       <CardContent className="space-y-3">
         {issues.map((issue) => (
           <div
-            className="rounded-2xl border border-border/70 bg-background/90 px-4 py-3 text-sm leading-6 text-foreground/85"
+            className="rounded-md bg-background/90 px-4 py-3 text-sm leading-6 text-foreground/85"
             key={issue}
           >
             {issue}
@@ -341,15 +339,12 @@ function HeroPreview() {
 
   return (
     <RevealPanel
-      className="rounded-[2rem] border border-border/70 bg-white/85 shadow-panel backdrop-blur"
+      className="rounded-md bg-white shadow-soft"
       content={() => (
-        <div className="border-x border-border/70 bg-white/95 px-6 py-5">
+        <div className="bg-white/95 px-6 py-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {featured.attributes.map((attribute) => (
-              <div
-                className="rounded-2xl border border-border/70 bg-accent/45 px-4 py-3"
-                key={attribute.label}
-              >
+              <div className="rounded-md bg-accent/45 px-4 py-3" key={attribute.label}>
                 <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {attribute.label}
                 </p>
@@ -364,7 +359,7 @@ function HeroPreview() {
       regionLabel="Hero reveal preview"
     >
       <RevealPanel.Top>
-        <div className="rounded-t-[2rem] bg-white/95 px-6 py-6">
+        <div className="rounded-t-md bg-white/95 px-6 py-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <Badge variant="secondary">Persistent top region</Badge>
@@ -383,7 +378,7 @@ function HeroPreview() {
       </RevealPanel.Top>
 
       <RevealPanel.Bottom>
-        <div className="rounded-b-[2rem] border-t border-border/70 bg-secondary/65 px-6 py-4">
+        <div className="rounded-b-md bg-secondary/65 px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Badge variant="outline">Persistent bottom region</Badge>
             <div className="flex flex-wrap gap-2">
@@ -405,7 +400,7 @@ function SelectTrapDemo() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-      <Card className="glass-card overflow-hidden rounded-[2rem]">
+      <Card className="glass-card overflow-hidden rounded-md">
         <CardHeader>
           <Badge variant="outline">Problem 1</Badge>
           <CardTitle>The select only shows the label, not the decision</CardTitle>
@@ -446,7 +441,7 @@ function SelectTrapDemo() {
               </Select>
             </div>
 
-            <Card className="rounded-[1.5rem] border-border/70 bg-white/80 shadow-none">
+            <Card className="rounded-md bg-white/80 shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">{selectedProperty.label}</CardTitle>
                 <CardDescription>
@@ -462,10 +457,7 @@ function SelectTrapDemo() {
                     ['Occupancy', selectedProperty.occupancy],
                     ['Risk', selectedProperty.risk],
                   ].map(([label, value]) => (
-                    <div
-                      className="rounded-2xl border border-border/70 bg-muted/35 px-4 py-3"
-                      key={label}
-                    >
+                    <div className="rounded-md bg-muted/35 px-4 py-3" key={label}>
                       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         {label}
                       </p>
@@ -479,7 +471,7 @@ function SelectTrapDemo() {
           </div>
 
           <div className="space-y-4">
-            <Card className="rounded-[1.5rem] border-border/70 bg-background/90 shadow-none">
+            <Card className="rounded-md bg-background/90 shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">Friction created by the control</CardTitle>
               </CardHeader>
@@ -489,10 +481,7 @@ function SelectTrapDemo() {
                   ['Visible attributes before select', '1'],
                   ['Hidden attributes before select', '5+'],
                 ].map(([label, value]) => (
-                  <div
-                    className="rounded-2xl border border-border/70 bg-white/80 px-4 py-4"
-                    key={label}
-                  >
+                  <div className="rounded-md bg-white/80 px-4 py-4" key={label}>
                     <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       {label}
                     </p>
@@ -504,7 +493,7 @@ function SelectTrapDemo() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-[1.5rem] border-border/70 bg-white/80 shadow-none">
+            <Card className="rounded-md bg-white/80 shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">The awkward fallback developers try</CardTitle>
                 <CardDescription>
@@ -513,7 +502,7 @@ function SelectTrapDemo() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-2xl border border-dashed border-border/80 bg-muted/30 px-4 py-4 font-mono text-xs leading-6 text-foreground/80">
+                <div className="rounded-md bg-muted/30 px-4 py-4 font-mono text-xs leading-6 text-foreground/80">
                   {`${selectedProperty.label} | ${selectedProperty.price} | ${selectedProperty.yield} | ${selectedProperty.occupancy} | ${selectedProperty.risk}`}
                 </div>
               </CardContent>
@@ -522,7 +511,7 @@ function SelectTrapDemo() {
         </CardContent>
       </Card>
 
-      <Card className="glass-card rounded-[2rem]">
+      <Card className="glass-card rounded-md">
         <CardHeader>
           <Badge variant="outline">Why it feels slow</Badge>
           <CardTitle>The user has to remember more than the UI shows</CardTitle>
@@ -534,7 +523,7 @@ function SelectTrapDemo() {
             'The surrounding draft or current screen gives no inline comparison surface.',
           ].map((item) => (
             <div
-              className="rounded-2xl border border-border/70 bg-white/80 px-4 py-3 text-sm leading-6 text-muted-foreground"
+              className="rounded-md bg-white/80 px-4 py-3 text-sm leading-6 text-muted-foreground"
               key={item}
             >
               {item}
@@ -558,7 +547,7 @@ function ModalDetourDemo() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <Card className="glass-card rounded-[2rem]">
+      <Card className="glass-card rounded-md">
         <CardHeader>
           <Badge variant="outline">Problem 2</Badge>
           <CardTitle>The secondary modal solves detail by stealing context</CardTitle>
@@ -605,7 +594,7 @@ function ModalDetourDemo() {
                   </div>
                 </div>
 
-                <Card className="rounded-[1.5rem] border-border/70 bg-secondary/35 shadow-none">
+                <Card className="rounded-md bg-secondary/35 shadow-none">
                   <CardHeader className="pb-4">
                     <CardTitle className="text-xl">Current selection</CardTitle>
                     <CardDescription>
@@ -613,7 +602,7 @@ function ModalDetourDemo() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="rounded-2xl border border-border/70 bg-white/80 px-4 py-4">
+                    <div className="rounded-md bg-white/80 px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-foreground">{selectedProperty.label}</p>
@@ -643,11 +632,11 @@ function ModalDetourDemo() {
                           </DialogDescription>
                         </DialogHeader>
 
-                        <ScrollArea className="h-[360px] rounded-[1.5rem] border border-border/70 bg-background/80">
+                        <ScrollArea className="h-[360px] rounded-md bg-background/80">
                           <div className="space-y-3 p-4">
                             {properties.map((property) => (
                               <Card
-                                className="rounded-[1.4rem] border-border/70 bg-white/85 shadow-none"
+                                className="rounded-md bg-white/85 shadow-none"
                                 key={property.id}
                               >
                                 <CardHeader className="pb-4">
@@ -667,10 +656,7 @@ function ModalDetourDemo() {
                                       ['Occupancy', property.occupancy],
                                       ['Setup', property.setupTime],
                                     ].map(([label, value]) => (
-                                      <div
-                                        className="rounded-2xl border border-border/70 bg-muted/35 px-4 py-3"
-                                        key={label}
-                                      >
+                                      <div className="rounded-md bg-muted/35 px-4 py-3" key={label}>
                                         <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                           {label}
                                         </p>
@@ -709,7 +695,7 @@ function ModalDetourDemo() {
         </CardContent>
       </Card>
 
-      <Card className="glass-card rounded-[2rem]">
+      <Card className="glass-card rounded-md">
         <CardHeader>
           <Badge variant="outline">What the second modal adds</Badge>
           <CardTitle>The detour is now part of the product</CardTitle>
@@ -732,10 +718,7 @@ function ModalDetourDemo() {
               label: 'Implementation drag',
             },
           ].map((item) => (
-            <div
-              className="rounded-2xl border border-border/70 bg-white/80 px-4 py-4"
-              key={item.label}
-            >
+            <div className="rounded-md bg-white/80 px-4 py-4" key={item.label}>
               <p className="text-sm font-semibold text-foreground">{item.label}</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
             </div>
@@ -757,15 +740,12 @@ function PropertyRevealCard({
 }) {
   return (
     <RevealPanel
-      className="overflow-hidden rounded-[1.6rem] border border-border/70 bg-white/90 shadow-none"
+      className="overflow-hidden rounded-md bg-white/90 shadow-none"
       content={({ close }) => (
-        <div className="border-x border-border/70 bg-white px-5 py-5">
+        <div className="bg-white px-5 py-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {property.attributes.map((attribute) => (
-              <div
-                className="rounded-2xl border border-border/70 bg-muted/35 px-4 py-3"
-                key={attribute.label}
-              >
+              <div className="rounded-md bg-muted/35 px-4 py-3" key={attribute.label}>
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {attribute.label}
                 </p>
@@ -815,7 +795,7 @@ function PropertyRevealCard({
       </RevealPanel.Top>
 
       <RevealPanel.Bottom>
-        <div className="border-t border-border/70 bg-secondary/40 px-5 py-3">
+        <div className="bg-secondary/40 px-5 py-3">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline">Yield {property.yield}</Badge>
             <Badge variant="outline">Occupancy {property.occupancy}</Badge>
@@ -835,9 +815,9 @@ function RevealSolutionDemo() {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
       <RevealPanel
-        className="glass-card overflow-hidden rounded-[2rem]"
+        className="glass-card overflow-hidden rounded-md"
         content={() => (
-          <div className="border-x border-border/70 bg-white/95 px-6 py-5">
+          <div className="bg-white/95 px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <Badge variant="outline">RevealGroup inside the chooser</Badge>
@@ -851,7 +831,7 @@ function RevealSolutionDemo() {
               </RevealClose>
             </div>
 
-            <ScrollArea className="mt-5 h-[26rem] rounded-[1.5rem] border border-border/70 bg-background/85">
+            <ScrollArea className="mt-5 h-[26rem] rounded-md bg-background/85">
               <RevealGroup closeSiblings>
                 <div className="space-y-3 p-4">
                   {properties.map((property) => (
@@ -897,7 +877,7 @@ function RevealSolutionDemo() {
         </RevealPanel.Top>
 
         <RevealPanel.Bottom>
-          <div className="border-t border-border/70 bg-secondary/55 px-6 py-5">
+          <div className="bg-secondary/55 px-6 py-5">
             <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <p className="text-sm font-semibold text-foreground">{selectedProperty.label}</p>
@@ -915,7 +895,7 @@ function RevealSolutionDemo() {
         </RevealPanel.Bottom>
       </RevealPanel>
 
-      <Card className="glass-card rounded-[2rem]">
+      <Card className="glass-card rounded-md">
         <CardHeader>
           <Badge variant="outline">Why it works</Badge>
           <CardTitle>The UI stays honest about the choice</CardTitle>
@@ -927,7 +907,7 @@ function RevealSolutionDemo() {
             'The UI still feels local to the surrounding form, card, or dialog instead of becoming a detached mini-app.',
           ].map((item) => (
             <div
-              className="rounded-2xl border border-border/70 bg-white/80 px-4 py-4 text-sm leading-6 text-muted-foreground"
+              className="rounded-md bg-white/80 px-4 py-4 text-sm leading-6 text-muted-foreground"
               key={item}
             >
               {item}
@@ -942,13 +922,7 @@ function RevealSolutionDemo() {
 export function ShowcasePage() {
   return (
     <div className="relative overflow-hidden pb-16" id="top">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[46rem] overflow-hidden">
-        <div className="absolute left-[-8rem] top-24 size-[20rem] rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-[-5rem] top-8 size-[16rem] rounded-full bg-sky-200/60 blur-3xl" />
-        <div className="absolute inset-x-0 top-0 h-full bg-grid-soft opacity-40" />
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 bg-background">
         <div className="container flex min-h-16 items-center justify-between gap-4 px-6 py-3 md:px-8">
           <a className="flex items-center gap-3" href="#top">
             <div className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft">
@@ -1042,7 +1016,7 @@ export function ShowcasePage() {
                     text: 'Group exclusivity, nested close propagation, motion, and scroll are already handled.',
                   },
                 ].map((item) => (
-                  <Card className="glass-card rounded-[1.6rem]" key={item.label}>
+                  <Card className="glass-card rounded-md" key={item.label}>
                     <CardContent className="space-y-3 p-5">
                       <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <item.icon className="size-5" />
@@ -1056,7 +1030,7 @@ export function ShowcasePage() {
                 ))}
               </div>
 
-              <Card className="glass-card rounded-[1.8rem]">
+              <Card className="glass-card rounded-md">
                 <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
                   <div className="space-y-2">
                     <Badge variant="outline">Install</Badge>
@@ -1072,32 +1046,26 @@ export function ShowcasePage() {
               </Card>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 rounded-[2.5rem] bg-white/40 blur-2xl" />
-              <div className="relative space-y-4">
-                <HeroPreview />
-                <Card className="glass-card rounded-[1.7rem]">
-                  <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
-                    {[
-                      ['Context visible', 'Yes'],
-                      ['Multi-attribute review', 'Inline'],
-                      ['Extra modal required', 'No'],
-                    ].map(([label, value]) => (
-                      <div
-                        className="rounded-2xl border border-border/70 bg-background/85 px-4 py-4"
-                        key={label}
-                      >
-                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          {label}
-                        </p>
-                        <p className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">
-                          {value}
-                        </p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="space-y-4">
+              <HeroPreview />
+              <Card className="glass-card rounded-md">
+                <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
+                  {[
+                    ['Context visible', 'Yes'],
+                    ['Multi-attribute review', 'Inline'],
+                    ['Extra modal required', 'No'],
+                  ].map(([label, value]) => (
+                    <div className="rounded-md bg-background/85 px-4 py-4" key={label}>
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        {label}
+                      </p>
+                      <p className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
@@ -1152,7 +1120,7 @@ export function ShowcasePage() {
                 title="Machine-readable where it helps, direct language where it matters"
               />
 
-              <Card className="glass-card rounded-[2rem]">
+              <Card className="glass-card rounded-md">
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -1170,7 +1138,7 @@ export function ShowcasePage() {
                 <CardContent className="space-y-3">
                   {aiContext.map((item) => (
                     <div
-                      className="rounded-2xl border border-border/70 bg-white/80 px-4 py-3 text-sm leading-6 text-foreground/85"
+                      className="rounded-md bg-white/80 px-4 py-3 text-sm leading-6 text-foreground/85"
                       key={item}
                     >
                       {item}
@@ -1181,7 +1149,7 @@ export function ShowcasePage() {
             </div>
 
             <div className="space-y-6">
-              <Card className="glass-card rounded-[2rem]">
+              <Card className="glass-card rounded-md">
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -1211,7 +1179,7 @@ export function ShowcasePage() {
                 </CardContent>
               </Card>
 
-              <Card className="glass-card rounded-[2rem]">
+              <Card className="glass-card rounded-md">
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -1246,7 +1214,7 @@ export function ShowcasePage() {
                     },
                   ].map((item) => (
                     <a
-                      className="block rounded-2xl border border-border/70 bg-white/80 px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent/60"
+                      className="block rounded-md bg-white/80 px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent/60"
                       href={item.href}
                       key={item.href}
                       rel="noreferrer"
@@ -1289,7 +1257,7 @@ export function ShowcasePage() {
       </main>
 
       <footer className="section-shell pt-8">
-        <Card className="glass-card rounded-[2rem]">
+        <Card className="glass-card rounded-md">
           <CardContent className="space-y-6 p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-2">
@@ -1333,10 +1301,7 @@ export function ShowcasePage() {
                   text: 'The point is not more animation. The point is less context loss.',
                 },
               ].map((item) => (
-                <div
-                  className="rounded-[1.5rem] border border-border/70 bg-white/75 p-5"
-                  key={item.label}
-                >
+                <div className="rounded-md bg-white/75 p-5" key={item.label}>
                   <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <item.icon className="size-5" />
                   </div>

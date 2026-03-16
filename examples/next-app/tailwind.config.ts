@@ -20,8 +20,8 @@ const config: Config = {
         xl: 'calc(var(--radius) + 4px)',
       },
       boxShadow: {
-        panel: '0 24px 80px -32px rgba(15, 23, 42, 0.24)',
-        soft: '0 18px 40px -28px rgba(15, 23, 42, 0.18)',
+        panel: '0 12px 30px -22px rgba(15, 23, 42, 0.18)',
+        soft: '0 8px 20px -16px rgba(15, 23, 42, 0.14)',
       },
       colors: {
         accent: {

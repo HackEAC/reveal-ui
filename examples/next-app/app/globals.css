@@ -24,7 +24,7 @@
     --border: 216 31% 88%;
     --input: 213 32% 90%;
     --ring: 184 77% 34%;
-    --radius: 1rem;
+    --radius: 0.5rem;
     --font-sans: var(--font-manrope);
     --font-display: var(--font-fraunces);
   }
@@ -39,10 +39,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    background-image:
-      radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 33%),
-      radial-gradient(circle at top right, rgba(147, 197, 253, 0.38), transparent 28%),
-      linear-gradient(180deg, #fffdfa 0%, #f7f3ea 100%);
+    background: #f7f3ea;
   }
 
   button,
@@ -59,15 +56,15 @@
   }
 
   .section-kicker {
-    @apply inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/75 px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground shadow-soft backdrop-blur;
+    @apply inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground;
   }
 
   .glass-card {
-    @apply border-border/70 bg-white/80 shadow-panel backdrop-blur;
+    @apply bg-white shadow-soft;
   }
 
   .code-block {
-    @apply overflow-x-auto rounded-2xl border border-border/70 bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 shadow-panel;
+    @apply overflow-x-auto rounded-md bg-slate-950 px-4 py-4 font-mono text-sm text-slate-100 shadow-soft;
   }
 }
 
@@ -77,9 +74,6 @@
   }
 
   .bg-grid-soft {
-    background-image:
-      linear-gradient(to right, rgba(148, 163, 184, 0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-    background-size: 28px 28px;
+    background-image: none;
   }
 }
