@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.tmp
+.DS_Store
+*.tgz
+examples/next-app/.next
+examples/next-app/node_modules
+examples/next-app/package-lock.json
