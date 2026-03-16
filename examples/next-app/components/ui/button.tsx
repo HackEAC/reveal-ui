@@ -21,7 +21,7 @@ const buttonVariants = cva(
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         ghost: 'hover:bg-secondary hover:text-foreground',
         outline: 'bg-secondary/75 text-foreground hover:bg-secondary',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        secondary: 'bg-accent text-accent-foreground hover:bg-accent/80',
       },
     },
   },

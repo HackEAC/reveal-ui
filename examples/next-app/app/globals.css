@@ -5,28 +5,50 @@
 
 @layer base {
   :root {
-    --background: 44 57% 97%;
-    --foreground: 224 38% 14%;
+    --background: 36 17% 96%;
+    --foreground: 222 14% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 224 38% 14%;
+    --card-foreground: 222 14% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 38% 14%;
-    --primary: 184 77% 28%;
-    --primary-foreground: 48 75% 98%;
-    --secondary: 213 46% 95%;
-    --secondary-foreground: 224 38% 14%;
-    --muted: 46 45% 94%;
-    --muted-foreground: 220 17% 42%;
-    --accent: 174 41% 91%;
-    --accent-foreground: 178 55% 19%;
+    --popover-foreground: 222 14% 14%;
+    --primary: 216 14% 24%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 36 12% 90%;
+    --secondary-foreground: 222 14% 18%;
+    --muted: 36 12% 92%;
+    --muted-foreground: 220 10% 38%;
+    --accent: 220 13% 88%;
+    --accent-foreground: 222 14% 18%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 216 31% 88%;
-    --input: 213 32% 90%;
-    --ring: 184 77% 34%;
+    --border: 220 10% 82%;
+    --input: 220 10% 82%;
+    --ring: 216 14% 32%;
     --radius: 0.5rem;
     --font-sans: var(--font-manrope);
     --font-display: var(--font-fraunces);
+  }
+
+  .dark {
+    --background: 222 18% 11%;
+    --foreground: 210 20% 94%;
+    --card: 222 18% 14%;
+    --card-foreground: 210 20% 94%;
+    --popover: 222 18% 13%;
+    --popover-foreground: 210 20% 94%;
+    --primary: 210 18% 88%;
+    --primary-foreground: 222 18% 12%;
+    --secondary: 222 13% 20%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 222 13% 18%;
+    --muted-foreground: 215 12% 70%;
+    --accent: 220 13% 24%;
+    --accent-foreground: 210 20% 90%;
+    --destructive: 0 72% 54%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 10% 24%;
+    --input: 220 10% 24%;
+    --ring: 210 18% 74%;
   }
 
   * {
@@ -39,7 +61,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    background: #f7f3ea;
+    background: hsl(var(--background));
   }
 
   button,
@@ -60,7 +82,7 @@
   }
 
   .glass-card {
-    @apply bg-white shadow-soft;
+    @apply bg-card shadow-soft;
   }
 
   .code-block {

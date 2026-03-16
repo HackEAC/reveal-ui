@@ -8,9 +8,11 @@ import {
   Focus,
   GitCompareArrows,
   Layers3,
+  Moon,
   SearchCode,
   ShieldCheck,
   Sparkles,
+  SunMedium,
 } from 'lucide-react'
 import * as React from 'react'
 import { RevealClose, RevealGroup, RevealPanel, RevealTrigger } from 'reveal-ui'
@@ -249,6 +251,18 @@ const exampleSnippet = `import {
   </RevealPanel.Bottom>
 </RevealPanel>`
 
+const navigationItems = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'why', label: 'Why' },
+  { id: 'lab', label: 'Lab' },
+  { id: 'ai-context', label: 'AI context' },
+  { id: 'faq', label: 'FAQ' },
+] as const
+
+const themeStorageKey = 'reveal-ui-docs-theme'
+
+type ThemeMode = 'light' | 'dark'
+
 function getProperty(propertyId: string) {
   return properties.find((property) => property.id === propertyId) ?? properties[0]
 }
@@ -323,7 +337,7 @@ function PressureCard({
       <CardContent className="space-y-3">
         {issues.map((issue) => (
           <div
-            className="rounded-md bg-background/90 px-4 py-3 text-sm leading-6 text-foreground/85"
+            className="rounded-md bg-background px-4 py-3 text-sm leading-6 text-foreground/85"
             key={issue}
           >
             {issue}
@@ -339,12 +353,12 @@ function HeroPreview() {
 
   return (
     <RevealPanel
-      className="rounded-md bg-white shadow-soft"
+      className="rounded-md bg-card shadow-soft"
       content={() => (
-        <div className="bg-white/95 px-6 py-5">
+        <div className="bg-card px-6 py-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {featured.attributes.map((attribute) => (
-              <div className="rounded-md bg-accent/45 px-4 py-3" key={attribute.label}>
+              <div className="rounded-md bg-accent px-4 py-3" key={attribute.label}>
                 <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {attribute.label}
                 </p>
@@ -359,7 +373,7 @@ function HeroPreview() {
       regionLabel="Hero reveal preview"
     >
       <RevealPanel.Top>
-        <div className="rounded-t-md bg-white/95 px-6 py-6">
+        <div className="rounded-t-md bg-card px-6 py-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <Badge variant="secondary">Persistent top region</Badge>
@@ -378,7 +392,7 @@ function HeroPreview() {
       </RevealPanel.Top>
 
       <RevealPanel.Bottom>
-        <div className="rounded-b-md bg-secondary/65 px-6 py-4">
+        <div className="rounded-b-md bg-secondary px-6 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Badge variant="outline">Persistent bottom region</Badge>
             <div className="flex flex-wrap gap-2">
@@ -441,7 +455,7 @@ function SelectTrapDemo() {
               </Select>
             </div>
 
-            <Card className="rounded-md bg-white/80 shadow-none">
+            <Card className="rounded-md bg-card shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">{selectedProperty.label}</CardTitle>
                 <CardDescription>
@@ -457,7 +471,7 @@ function SelectTrapDemo() {
                     ['Occupancy', selectedProperty.occupancy],
                     ['Risk', selectedProperty.risk],
                   ].map(([label, value]) => (
-                    <div className="rounded-md bg-muted/35 px-4 py-3" key={label}>
+                    <div className="rounded-md bg-muted px-4 py-3" key={label}>
                       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         {label}
                       </p>
@@ -471,7 +485,7 @@ function SelectTrapDemo() {
           </div>
 
           <div className="space-y-4">
-            <Card className="rounded-md bg-background/90 shadow-none">
+            <Card className="rounded-md bg-background shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">Friction created by the control</CardTitle>
               </CardHeader>
@@ -481,7 +495,7 @@ function SelectTrapDemo() {
                   ['Visible attributes before select', '1'],
                   ['Hidden attributes before select', '5+'],
                 ].map(([label, value]) => (
-                  <div className="rounded-md bg-white/80 px-4 py-4" key={label}>
+                  <div className="rounded-md bg-card px-4 py-4" key={label}>
                     <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       {label}
                     </p>
@@ -493,7 +507,7 @@ function SelectTrapDemo() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-md bg-white/80 shadow-none">
+            <Card className="rounded-md bg-card shadow-none">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">The awkward fallback developers try</CardTitle>
                 <CardDescription>
@@ -502,7 +516,7 @@ function SelectTrapDemo() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md bg-muted/30 px-4 py-4 font-mono text-xs leading-6 text-foreground/80">
+                <div className="rounded-md bg-muted px-4 py-4 font-mono text-xs leading-6 text-foreground/80">
                   {`${selectedProperty.label} | ${selectedProperty.price} | ${selectedProperty.yield} | ${selectedProperty.occupancy} | ${selectedProperty.risk}`}
                 </div>
               </CardContent>
@@ -523,7 +537,7 @@ function SelectTrapDemo() {
             'The surrounding draft or current screen gives no inline comparison surface.',
           ].map((item) => (
             <div
-              className="rounded-md bg-white/80 px-4 py-3 text-sm leading-6 text-muted-foreground"
+              className="rounded-md bg-card px-4 py-3 text-sm leading-6 text-muted-foreground"
               key={item}
             >
               {item}
@@ -594,7 +608,7 @@ function ModalDetourDemo() {
                   </div>
                 </div>
 
-                <Card className="rounded-md bg-secondary/35 shadow-none">
+                <Card className="rounded-md bg-secondary shadow-none">
                   <CardHeader className="pb-4">
                     <CardTitle className="text-xl">Current selection</CardTitle>
                     <CardDescription>
@@ -602,7 +616,7 @@ function ModalDetourDemo() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="rounded-md bg-white/80 px-4 py-4">
+                    <div className="rounded-md bg-card px-4 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-foreground">{selectedProperty.label}</p>
@@ -632,13 +646,10 @@ function ModalDetourDemo() {
                           </DialogDescription>
                         </DialogHeader>
 
-                        <ScrollArea className="h-[360px] rounded-md bg-background/80">
+                        <ScrollArea className="h-[360px] rounded-md bg-background">
                           <div className="space-y-3 p-4">
                             {properties.map((property) => (
-                              <Card
-                                className="rounded-md bg-white/85 shadow-none"
-                                key={property.id}
-                              >
+                              <Card className="rounded-md bg-card shadow-none" key={property.id}>
                                 <CardHeader className="pb-4">
                                   <div className="flex items-start justify-between gap-4">
                                     <div>
@@ -656,7 +667,7 @@ function ModalDetourDemo() {
                                       ['Occupancy', property.occupancy],
                                       ['Setup', property.setupTime],
                                     ].map(([label, value]) => (
-                                      <div className="rounded-md bg-muted/35 px-4 py-3" key={label}>
+                                      <div className="rounded-md bg-muted px-4 py-3" key={label}>
                                         <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                                           {label}
                                         </p>
@@ -718,7 +729,7 @@ function ModalDetourDemo() {
               label: 'Implementation drag',
             },
           ].map((item) => (
-            <div className="rounded-md bg-white/80 px-4 py-4" key={item.label}>
+            <div className="rounded-md bg-card px-4 py-4" key={item.label}>
               <p className="text-sm font-semibold text-foreground">{item.label}</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
             </div>
@@ -740,12 +751,12 @@ function PropertyRevealCard({
 }) {
   return (
     <RevealPanel
-      className="overflow-hidden rounded-md bg-white/90 shadow-none"
+      className="overflow-hidden rounded-md bg-card shadow-none"
       content={({ close }) => (
-        <div className="bg-white px-5 py-5">
+        <div className="bg-card px-5 py-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {property.attributes.map((attribute) => (
-              <div className="rounded-md bg-muted/35 px-4 py-3" key={attribute.label}>
+              <div className="rounded-md bg-muted px-4 py-3" key={attribute.label}>
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   {attribute.label}
                 </p>
@@ -774,7 +785,7 @@ function PropertyRevealCard({
       magicMotion
     >
       <RevealPanel.Top>
-        <div className="bg-white px-5 py-4">
+        <div className="bg-card px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -795,7 +806,7 @@ function PropertyRevealCard({
       </RevealPanel.Top>
 
       <RevealPanel.Bottom>
-        <div className="bg-secondary/40 px-5 py-3">
+        <div className="bg-secondary px-5 py-3">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline">Yield {property.yield}</Badge>
             <Badge variant="outline">Occupancy {property.occupancy}</Badge>
@@ -817,7 +828,7 @@ function RevealSolutionDemo() {
       <RevealPanel
         className="glass-card overflow-hidden rounded-md"
         content={() => (
-          <div className="bg-white/95 px-6 py-5">
+          <div className="bg-card px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
                 <Badge variant="outline">RevealGroup inside the chooser</Badge>
@@ -831,7 +842,7 @@ function RevealSolutionDemo() {
               </RevealClose>
             </div>
 
-            <ScrollArea className="mt-5 h-[26rem] rounded-md bg-background/85">
+            <ScrollArea className="mt-5 h-[26rem] rounded-md bg-background">
               <RevealGroup closeSiblings>
                 <div className="space-y-3 p-4">
                   {properties.map((property) => (
@@ -851,7 +862,7 @@ function RevealSolutionDemo() {
         regionLabel="Inline property chooser"
       >
         <RevealPanel.Top>
-          <div className="bg-white/95 px-6 py-6">
+          <div className="bg-card px-6 py-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-3">
                 <Badge variant="secondary">Solution</Badge>
@@ -877,7 +888,7 @@ function RevealSolutionDemo() {
         </RevealPanel.Top>
 
         <RevealPanel.Bottom>
-          <div className="bg-secondary/55 px-6 py-5">
+          <div className="bg-secondary px-6 py-5">
             <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
                 <p className="text-sm font-semibold text-foreground">{selectedProperty.label}</p>
@@ -907,7 +918,7 @@ function RevealSolutionDemo() {
             'The UI still feels local to the surrounding form, card, or dialog instead of becoming a detached mini-app.',
           ].map((item) => (
             <div
-              className="rounded-md bg-white/80 px-4 py-4 text-sm leading-6 text-muted-foreground"
+              className="rounded-md bg-card px-4 py-4 text-sm leading-6 text-muted-foreground"
               key={item}
             >
               {item}
@@ -920,11 +931,78 @@ function RevealSolutionDemo() {
 }
 
 export function ShowcasePage() {
+  const [activeSection, setActiveSection] =
+    React.useState<(typeof navigationItems)[number]['id']>('overview')
+  const [mounted, setMounted] = React.useState(false)
+  const [theme, setTheme] = React.useState<ThemeMode>('light')
+
+  React.useEffect(() => {
+    const storedTheme = window.localStorage.getItem(themeStorageKey)
+    const prefersDark =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    const resolvedTheme =
+      storedTheme === 'dark' || storedTheme === 'light'
+        ? storedTheme
+        : prefersDark
+          ? 'dark'
+          : 'light'
+
+    setTheme(resolvedTheme)
+    setMounted(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (!mounted) return
+
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.documentElement.style.colorScheme = theme
+    window.localStorage.setItem(themeStorageKey, theme)
+  }, [mounted, theme])
+
+  React.useEffect(() => {
+    const sectionElements = navigationItems
+      .map((item) => document.getElementById(item.id))
+      .filter((element): element is HTMLElement => element instanceof HTMLElement)
+
+    if (sectionElements.length === 0) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (left, right) =>
+              right.intersectionRatio - left.intersectionRatio ||
+              left.boundingClientRect.top - right.boundingClientRect.top,
+          )
+
+        const nextSection = visibleEntries[0]?.target.id
+
+        if (nextSection) {
+          setActiveSection(nextSection as (typeof navigationItems)[number]['id'])
+        }
+      },
+      {
+        rootMargin: '-24% 0px -52% 0px',
+        threshold: [0.2, 0.45, 0.7],
+      },
+    )
+
+    for (const sectionElement of sectionElements) {
+      observer.observe(sectionElement)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div className="relative overflow-hidden pb-16" id="top">
-      <header className="sticky top-0 z-40 bg-background">
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/92 shadow-soft backdrop-blur">
         <div className="container flex min-h-16 items-center justify-between gap-4 px-6 py-3 md:px-8">
-          <a className="flex items-center gap-3" href="#top">
+          <a className="flex items-center gap-3" href="#overview">
             <div className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft">
               <Layers3 className="size-5" />
             </div>
@@ -936,19 +1014,21 @@ export function ShowcasePage() {
             </div>
           </a>
 
-          <nav className="hidden items-center gap-5 text-sm font-semibold text-muted-foreground lg:flex">
-            <a className="transition-colors hover:text-foreground" href="#why">
-              Why
-            </a>
-            <a className="transition-colors hover:text-foreground" href="#lab">
-              Lab
-            </a>
-            <a className="transition-colors hover:text-foreground" href="#ai-context">
-              AI context
-            </a>
-            <a className="transition-colors hover:text-foreground" href="#faq">
-              FAQ
-            </a>
+          <nav className="hidden items-center gap-1 text-sm font-semibold lg:flex">
+            {navigationItems.map((item) => (
+              <a
+                className={cn(
+                  'rounded-sm px-3 py-2 transition-colors',
+                  activeSection === item.id
+                    ? 'bg-secondary text-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                )}
+                href={`#${item.id}`}
+                key={item.id}
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -960,12 +1040,26 @@ export function ShowcasePage() {
                 GitHub
               </a>
             </Button>
+            <Button
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              onClick={() =>
+                setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))
+              }
+              size="icon"
+              variant="outline"
+            >
+              {mounted && theme === 'dark' ? (
+                <SunMedium className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
+            </Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="section-shell pt-14 md:pt-20">
+        <section className="section-shell pt-14 md:pt-20" id="overview">
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-8">
               <div className="space-y-5">
@@ -1055,7 +1149,7 @@ export function ShowcasePage() {
                     ['Multi-attribute review', 'Inline'],
                     ['Extra modal required', 'No'],
                   ].map(([label, value]) => (
-                    <div className="rounded-md bg-background/85 px-4 py-4" key={label}>
+                    <div className="rounded-md bg-background px-4 py-4" key={label}>
                       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                         {label}
                       </p>
@@ -1138,7 +1232,7 @@ export function ShowcasePage() {
                 <CardContent className="space-y-3">
                   {aiContext.map((item) => (
                     <div
-                      className="rounded-md bg-white/80 px-4 py-3 text-sm leading-6 text-foreground/85"
+                      className="rounded-md bg-card px-4 py-3 text-sm leading-6 text-foreground/85"
                       key={item}
                     >
                       {item}
@@ -1214,7 +1308,7 @@ export function ShowcasePage() {
                     },
                   ].map((item) => (
                     <a
-                      className="block rounded-md bg-white/80 px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent/60"
+                      className="block rounded-md bg-card px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent"
                       href={item.href}
                       key={item.href}
                       rel="noreferrer"
@@ -1301,7 +1395,7 @@ export function ShowcasePage() {
                   text: 'The point is not more animation. The point is less context loss.',
                 },
               ].map((item) => (
-                <div className="rounded-md bg-white/75 p-5" key={item.label}>
+                <div className="rounded-md bg-card p-5" key={item.label}>
                   <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <item.icon className="size-5" />
                   </div>

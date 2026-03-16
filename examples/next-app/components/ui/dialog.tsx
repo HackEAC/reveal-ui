@@ -28,7 +28,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       className={cn(
-        'fixed left-1/2 top-1/2 z-50 grid w-[min(96vw,780px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md bg-white p-6 shadow-panel md:p-8',
+        'fixed left-1/2 top-1/2 z-50 grid w-[min(96vw,780px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md bg-popover p-6 text-popover-foreground shadow-panel md:p-8',
         className,
       )}
       ref={ref}
