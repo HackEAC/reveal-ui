@@ -1,6 +1,6 @@
-# @mijengo/reveal-ui
+# reveal-ui
 
-`@mijengo/reveal-ui` is a React library for persistent-summary disclosure: inline reveal editors,
+`reveal-ui` is a React library for persistent-summary disclosure: inline reveal editors,
 expanding card disclosure, and nested reveal flows where the summary stays visible while extra
 content appears between persistent top and bottom regions.
 
@@ -23,7 +23,7 @@ That makes it a good fit for:
 ## Installation
 
 ```bash
-npm install @mijengo/reveal-ui motion react react-dom
+npm install reveal-ui motion react react-dom
 ```
 
 Peer dependencies:
@@ -35,7 +35,7 @@ Peer dependencies:
 ## Quick Start
 
 ```tsx
-import { RevealClose, RevealPanel, RevealTrigger } from '@mijengo/reveal-ui'
+import { RevealClose, RevealPanel, RevealTrigger } from 'reveal-ui'
 
 export function AccountRevealCard() {
   return (
@@ -137,13 +137,13 @@ plain persistent-summary disclosure.
 Existing imports continue to work:
 
 ```tsx
-import { RevealSplitter } from '@mijengo/reveal-ui'
+import { RevealSplitter } from 'reveal-ui'
 ```
 
 For new code, prefer:
 
 ```tsx
-import { RevealPanel } from '@mijengo/reveal-ui'
+import { RevealPanel } from 'reveal-ui'
 ```
 
 `RevealSplitter` is the same component, kept only for migration compatibility.

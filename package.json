@@ -1,5 +1,5 @@
 {
-  "name": "@mijengo/reveal-ui",
+  "name": "reveal-ui",
   "version": "0.1.0",
   "description": "Persistent-summary disclosure primitives for inline reveal editors, expanding card disclosure, and nested reveal flows.",
   "license": "MIT",

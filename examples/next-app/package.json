@@ -7,7 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@mijengo/reveal-ui": "file:../..",
+    "reveal-ui": "file:../..",
     "motion": "^12.34.5",
     "next": "^15.0.0",
     "react": "^19.0.0",

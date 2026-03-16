@@ -1,7 +1,7 @@
 'use client'
 
-import { RevealClose, RevealGroup, RevealPanel, RevealTrigger } from '@mijengo/reveal-ui'
 import { useState } from 'react'
+import { RevealClose, RevealGroup, RevealPanel, RevealTrigger } from 'reveal-ui'
 
 export function Demo() {
   const [headline, setHeadline] = useState('Service blueprint')

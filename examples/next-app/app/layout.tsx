@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Reveal UI Example',
-  description: 'Persistent-summary disclosure example using @mijengo/reveal-ui',
+  description: 'Persistent-summary disclosure example using reveal-ui',
 }
 
 export default function RootLayout({

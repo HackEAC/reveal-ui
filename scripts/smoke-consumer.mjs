@@ -33,7 +33,7 @@ const tarballPath = path.join(rootDir, tarballName)
 const examplePackageJsonPath = path.join(smokeDir, 'package.json')
 const examplePackageJson = JSON.parse(readFileSync(examplePackageJsonPath, 'utf8'))
 
-examplePackageJson.dependencies['@mijengo/reveal-ui'] = `file:${tarballPath}`
+examplePackageJson.dependencies['reveal-ui'] = `file:${tarballPath}`
 writeFileSync(examplePackageJsonPath, `${JSON.stringify(examplePackageJson, null, 2)}\n`)
 
 try {
