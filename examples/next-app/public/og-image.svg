@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F7F3EA"/>
+  <circle cx="164" cy="122" r="190" fill="#0F766E" fill-opacity=".11"/>
+  <circle cx="1052" cy="64" r="156" fill="#BFDBFE" fill-opacity=".6"/>
+  <rect x="76" y="104" width="1048" height="422" rx="34" fill="white" fill-opacity=".82" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="116" y="192" fill="#0F766E" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="4">PERSISTENT-SUMMARY DISCLOSURE</text>
+  <text x="116" y="284" fill="#0F172A" font-family="Georgia, serif" font-size="72" font-weight="700">reveal-ui</text>
+  <text x="116" y="352" fill="#334155" font-family="Inter, Arial, sans-serif" font-size="34">Show rich choices inline instead of hiding them in selects or nested modals.</text>
+  <rect x="116" y="402" width="306" height="56" rx="28" fill="#0F766E"/>
+  <text x="152" y="439" fill="#FFFCF5" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">React • motion • shadcn</text>
+  <rect x="748" y="176" width="292" height="64" rx="24" fill="#ECFEFF" stroke="#99F6E4"/>
+  <text x="782" y="216" fill="#134E4A" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">RevealPanel</text>
+  <rect x="748" y="256" width="292" height="112" rx="24" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="782" y="302" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Compare properties</text>
+  <text x="782" y="338" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="20">Keep the summary and footer visible</text>
+  <rect x="748" y="384" width="292" height="64" rx="24" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="782" y="424" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Confirm in place</text>
+</svg>

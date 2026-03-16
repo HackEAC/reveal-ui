@@ -1,0 +1,37 @@
+# reveal-ui
+
+reveal-ui is a React library for persistent-summary disclosure in React.
+
+It is designed for inline reveal editors, expanding card disclosure, and nested reveal flows where
+the user needs multiple attributes before choosing an item such as a property, record, plan, or
+configuration.
+
+Problem framing:
+- classic select controls are cramped for multi-attribute comparison
+- secondary picker modals create context switching and focus-layer complexity
+- reveal-ui keeps the current summary visible while richer detail opens inline
+
+Primary exports:
+- RevealPanel
+- RevealGroup
+- RevealTrigger
+- RevealClose
+- RevealSplitter (deprecated alias of RevealPanel)
+
+Public API concepts:
+- top and bottom regions stay mounted
+- revealed content is inserted between those persistent regions
+- `content` accepts nodes or a render function
+- render props include `open`, `close`, `isOpen`, `contentId`, and `triggerId`
+- grouped sibling exclusivity is supported with RevealGroup
+- nested close propagation is supported with `close({ propagate: true })`
+- motion and scroll coordination are optional
+
+Install:
+npm install reveal-ui motion react react-dom
+
+Repository:
+https://github.com/HackEAC/reveal-ui
+
+Website:
+https://hackeac.github.io/reveal-ui

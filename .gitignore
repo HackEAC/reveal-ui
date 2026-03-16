@@ -4,6 +4,8 @@ coverage
 .tmp
 .DS_Store
 *.tgz
+.playwright-cli
+output/playwright
 examples/next-app/.next
 examples/next-app/node_modules
-examples/next-app/package-lock.json
+examples/next-app/out

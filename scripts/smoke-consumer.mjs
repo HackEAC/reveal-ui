@@ -7,6 +7,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const exampleDir = path.join(rootDir, 'examples', 'next-app')
 const tempRoot = path.join(rootDir, '.tmp')
 const smokeDir = path.join(tempRoot, 'smoke-next-app')
+const smokeLockfile = path.join(smokeDir, 'package-lock.json')
 
 mkdirSync(tempRoot, { recursive: true })
 rmSync(smokeDir, { force: true, recursive: true })
@@ -35,6 +36,10 @@ const examplePackageJson = JSON.parse(readFileSync(examplePackageJsonPath, 'utf8
 
 examplePackageJson.dependencies['reveal-ui'] = `file:${tarballPath}`
 writeFileSync(examplePackageJsonPath, `${JSON.stringify(examplePackageJson, null, 2)}\n`)
+
+if (existsSync(smokeLockfile)) {
+  rmSync(smokeLockfile)
+}
 
 try {
   execFileSync('npm', ['install', '--no-audit', '--no-fund'], {
