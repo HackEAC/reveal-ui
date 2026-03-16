@@ -7,6 +7,7 @@ import {
   Clock3,
   Focus,
   GitCompareArrows,
+  Menu,
   Moon,
   SearchCode,
   ShieldCheck,
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -935,6 +937,7 @@ export function ShowcasePage() {
     React.useState<(typeof navigationItems)[number]['id']>('overview')
   const [mounted, setMounted] = React.useState(false)
   const [theme, setTheme] = React.useState<ThemeMode>('light')
+  const currentYear = new Date().getFullYear()
 
   React.useEffect(() => {
     const storedTheme = window.localStorage.getItem(themeStorageKey)
@@ -999,17 +1002,12 @@ export function ShowcasePage() {
   }, [])
 
   return (
-    <div className="relative overflow-hidden pb-16" id="top">
+    <div className="relative pb-16" id="top">
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/92 shadow-soft backdrop-blur">
         <div className="container flex min-h-16 items-center justify-between gap-4 px-6 py-3 md:px-8">
           <a className="flex items-center gap-3" href="#overview">
             <RevealLogoMark className="size-10 shrink-0 shadow-soft" />
-            <div>
-              <p className="font-display text-xl tracking-[-0.03em] text-foreground">reveal-ui</p>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                persistent-summary disclosure
-              </p>
-            </div>
+            <p className="font-display text-xl tracking-[-0.03em] text-foreground">reveal-ui</p>
           </a>
 
           <nav className="hidden items-center gap-1 text-sm font-semibold lg:flex">
@@ -1030,10 +1028,62 @@ export function ShowcasePage() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  aria-label="Open mobile menu"
+                  className="lg:hidden"
+                  size="icon"
+                  variant="outline"
+                >
+                  <Menu className="size-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[min(92vw,24rem)] p-6 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle>Menu</DialogTitle>
+                  <DialogDescription>
+                    Jump between sections and open the repository from mobile.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="mt-2 flex flex-col gap-2">
+                  {navigationItems.map((item) => (
+                    <DialogClose asChild key={item.id}>
+                      <a
+                        className={cn(
+                          'rounded-sm px-3 py-3 text-sm font-semibold transition-colors',
+                          activeSection === item.id
+                            ? 'bg-secondary text-foreground'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                        )}
+                        href={`#${item.id}`}
+                      >
+                        {item.label}
+                      </a>
+                    </DialogClose>
+                  ))}
+                </div>
+
+                <DialogFooter className="mt-2">
+                  <DialogClose asChild>
+                    <Button asChild variant="outline">
+                      <a href="#lab">See the demos</a>
+                    </Button>
+                  </DialogClose>
+                  <Button asChild>
+                    <a href={siteConfig.repoUrl} rel="noreferrer" target="_blank">
+                      GitHub
+                    </a>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Button asChild className="hidden sm:inline-flex" size="sm" variant="outline">
               <a href="#lab">See the demos</a>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild className="hidden sm:inline-flex" size="sm">
               <a href={siteConfig.repoUrl} rel="noreferrer" target="_blank">
                 GitHub
               </a>
@@ -1061,9 +1111,6 @@ export function ShowcasePage() {
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-8">
               <div className="space-y-5">
-                <Badge className="section-kicker" variant="outline">
-                  Inline reveal editor • expanding card disclosure • nested reveal flow
-                </Badge>
                 <div className="space-y-5">
                   <h1 className="max-w-4xl font-display text-5xl tracking-[-0.06em] text-foreground text-balance md:text-7xl">
                     Show the choice,
@@ -1405,6 +1452,19 @@ export function ShowcasePage() {
                 </div>
               ))}
             </div>
+
+            <p className="text-center text-sm text-muted-foreground">
+              Made with ❤️ by{' '}
+              <a
+                className="font-semibold text-foreground transition-colors hover:text-primary"
+                href="https://github.com/HackEAC"
+                rel="noreferrer"
+                target="_blank"
+              >
+                HackEAC
+              </a>{' '}
+              Team {currentYear}
+            </p>
           </CardContent>
         </Card>
       </footer>
