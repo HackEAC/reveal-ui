@@ -2,6 +2,56 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DocsExperience } from '../examples/next-app/components/site/docs-experience'
 
+jest.mock('@/components/ui/badge', () => {
+  const React = require('react')
+
+  return {
+    Badge: ({
+      children,
+      className,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) =>
+      React.createElement('div', { className, ...props }, children),
+  }
+})
+
+jest.mock('@/components/ui/card', () => {
+  const React = require('react')
+
+  const makeComponent = (tagName: 'div' | 'h3' | 'p') =>
+    React.forwardRef(function MockComponent(
+      {
+        children,
+        className,
+        ...props
+      }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode },
+      ref: React.ForwardedRef<HTMLElement>,
+    ) {
+      return React.createElement(tagName, { className, ...props, ref }, children)
+    })
+
+  return {
+    Card: makeComponent('div'),
+    CardContent: makeComponent('div'),
+    CardDescription: makeComponent('p'),
+    CardHeader: makeComponent('div'),
+    CardTitle: makeComponent('h3'),
+  }
+})
+
+jest.mock('@/components/ui/separator', () => {
+  const React = require('react')
+
+  return {
+    Separator: ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) =>
+      React.createElement('div', { className, role: 'separator', ...props }),
+  }
+})
+
+jest.mock('@/lib/utils', () => ({
+  cn: (...inputs: Array<string | false | null | undefined>) => inputs.filter(Boolean).join(' '),
+}))
+
 describe('DocsExperience', () => {
   it('renders the human-first docs shell by default', () => {
     render(<DocsExperience />)
