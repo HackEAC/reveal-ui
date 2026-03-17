@@ -43,19 +43,20 @@ Peer dependencies:
 ## Quick Start
 
 ```tsx
-import { RevealClose, RevealPanel, RevealTrigger } from 'reveal-ui'
+import * as React from 'react'
+import { RevealClose, RevealPanel, RevealTrigger, useRevealPanelState } from 'reveal-ui'
 
 export function AccountRevealCard() {
   return (
     <RevealPanel
-      content={({ close, isOpen }) => (
+      content={({ phase }) => (
         <div className="border-t border-slate-200 px-5 py-4">
           <p className="text-sm text-slate-700">
             The summary stays mounted while the editor opens inline.
           </p>
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs uppercase tracking-[0.28em] text-slate-500">
-              {isOpen ? 'editing' : 'collapsed'}
+              {phase}
             </span>
             <RevealClose className="rounded-full border px-3 py-1.5 text-sm text-slate-700">
               Done
@@ -91,7 +92,23 @@ export function AccountRevealCard() {
     </RevealPanel>
   )
 }
+
+function PrefetchingSection() {
+  const { phase } = useRevealPanelState()
+
+  React.useEffect(() => {
+    if (phase !== 'opening' && phase !== 'open') return
+    const controller = new AbortController()
+    fetch('/api/preview', { signal: controller.signal })
+    return () => controller.abort()
+  }, [phase])
+
+  return null
+}
 ```
+
+Use `keepMounted` when the revealed subtree itself needs to observe `phase === 'closed'` without
+unmounting between reveals.
 
 ## Public API
 
@@ -109,6 +126,12 @@ export function AccountRevealCard() {
 - `revealContent`: deprecated compatibility alias for `content`
 - Controlled and uncontrolled open state are both supported via `open`, `defaultOpen`, and
   `onOpenChange`
+- Revealed content receives `phase: 'closed' | 'opening' | 'open' | 'closing'` plus `isOpen`,
+  `open`, and `close` when you use the render-prop form of `content`
+- `useRevealPanelState()` exposes the same lifecycle state to nested components anywhere inside a
+  panel subtree
+- `keepMounted` keeps the revealed subtree mounted through `closed`, which is useful for phase-aware
+  animation coordination, preserved local state, or deferring cleanup until after a close cycle
 - `closeSiblings` integrates with `RevealGroup` for single-open stacks
 - `close({ propagate: true })` lets nested children collapse outer panels
 - `scrollOnOpen`, `scrollContainer`, and `scrollCascade` coordinate scroll alignment
@@ -125,7 +148,7 @@ it is not simplified away in the standalone package.
 
 - Delegated trigger attributes (`data-trigger-collapse` and `data-trigger-restore`) receive
   `aria-expanded`, `aria-controls`, focusability, and `role="button"` when needed
-- `RevealTrigger` and `RevealClose` expose `data-state` and `data-disabled`
+- `RevealTrigger` and `RevealClose` expose `data-state`, `data-phase`, and `data-disabled`
 - The revealed region uses `role="region"` and binds to the active trigger ID when available
 - Closing restores focus to the last trigger unless disabled through `restoreFocusOnClose` or
   `close({ restoreFocus: false })`

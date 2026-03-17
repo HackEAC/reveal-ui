@@ -3,7 +3,7 @@
 
 import { Slot } from '@radix-ui/react-slot'
 import { type ClassValue, clsx } from 'clsx'
-import { AnimatePresence, LayoutGroup, motion, type Transition } from 'motion/react'
+import { LayoutGroup, motion, type Transition } from 'motion/react'
 import * as React from 'react'
 import { twMerge } from 'tailwind-merge'
 
@@ -26,10 +26,13 @@ export type CloseOptions = {
   restoreFocus?: boolean
 }
 
+export type RevealPhase = 'closed' | 'opening' | 'open' | 'closing'
+
 export type RevealRenderProps = {
   close: (arg?: CloseOptions) => void
   open: () => void
   isOpen: boolean
+  phase: RevealPhase
   contentId: string
   triggerId?: string
 }
@@ -42,6 +45,7 @@ export interface RevealPanelProps {
   /** @deprecated Use `content` instead. */
   revealContent?: RevealContentProp
   className?: string
+  keepMounted?: boolean
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -80,20 +84,36 @@ type RevealHierarchyContextValue = {
   close: (arg?: CloseOptions) => void
 }
 
-type RevealItemContextValue = {
+export type RevealPanelState = {
   isOpen: boolean
+  phase: RevealPhase
   disabled: boolean
   contentId: string
   triggerId?: string
-  setLastTrigger: (node: HTMLElement | null) => void
-  setExplicitTriggerId: (id: string) => void
   open: () => void
   close: (arg?: CloseOptions) => void
+}
+
+type RevealItemContextValue = RevealPanelState & {
+  setLastTrigger: (node: HTMLElement | null) => void
+  setExplicitTriggerId: (id: string) => void
 }
 
 const RevealGroupContext = React.createContext<RevealGroupContextValue | null>(null)
 const RevealHierarchyContext = React.createContext<RevealHierarchyContextValue | null>(null)
 const RevealItemContext = React.createContext<RevealItemContextValue | null>(null)
+
+export function useRevealPanelState(): RevealPanelState {
+  const context = React.useContext(RevealItemContext)
+
+  if (!context) {
+    throw new Error('useRevealPanelState must be used inside a RevealPanel.')
+  }
+
+  const { close, contentId, disabled, isOpen, open, phase, triggerId } = context
+
+  return { close, contentId, disabled, isOpen, open, phase, triggerId }
+}
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (!ref) return
@@ -236,7 +256,7 @@ export const RevealTrigger = React.forwardRef<HTMLButtonElement, RevealTriggerPr
     }
 
     const generatedId = React.useId()
-    const { isOpen, contentId, setLastTrigger, setExplicitTriggerId, open } = context
+    const { isOpen, phase, contentId, setLastTrigger, setExplicitTriggerId, open } = context
     const resolvedId = props.id ?? generatedId
     const Component = asChild ? Slot : 'button'
     const isDisabled = disabled ?? context.disabled
@@ -250,6 +270,7 @@ export const RevealTrigger = React.forwardRef<HTMLButtonElement, RevealTriggerPr
         data-trigger-collapse
         data-disabled={isDisabled ? '' : undefined}
         data-state={isOpen ? 'open' : 'closed'}
+        data-phase={phase}
         aria-expanded={isOpen}
         aria-controls={contentId}
         disabled={!asChild ? isDisabled : undefined}
@@ -287,6 +308,7 @@ export const RevealClose = React.forwardRef<HTMLButtonElement, RevealTriggerProp
         data-trigger-restore
         data-disabled={isDisabled ? '' : undefined}
         data-state={context.isOpen ? 'open' : 'closed'}
+        data-phase={context.phase}
         aria-controls={context.contentId}
         disabled={!asChild ? isDisabled : undefined}
         aria-disabled={asChild && isDisabled ? true : undefined}
@@ -317,6 +339,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     content,
     revealContent,
     className,
+    keepMounted = false,
     defaultOpen = false,
     open: controlledOpen,
     onOpenChange,
@@ -342,15 +365,22 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   forwardedRef,
 ) {
   const resolvedContent = content ?? revealContent
+  const hasResolvedContent =
+    resolvedContent !== null && resolvedContent !== undefined && resolvedContent !== false
   const [isOpen, setOpenState] = useControllableState({
     value: controlledOpen,
     defaultValue: defaultOpen,
     onChange: onOpenChange,
   })
+  const [phase, setPhase] = React.useState<RevealPhase>(() =>
+    (controlledOpen ?? defaultOpen) ? 'open' : 'closed',
+  )
   const prefersReducedMotion = usePrefersReducedMotion()
   const hasAutoScrolledThisOpenRef = React.useRef(false)
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const lastTriggerRef = React.useRef<HTMLElement | null>(null)
+  const phaseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previousOpenRef = React.useRef(isOpen)
   const [extraScrollSpace, setExtraScrollSpace] = React.useState(0)
   const extraScrollSpaceRef = React.useRef(0)
   const containerPaddingRef = React.useRef<{ el: HTMLElement; paddingBottom: string } | null>(null)
@@ -362,7 +392,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const parentHierarchy = React.useContext(RevealHierarchyContext)
   const shouldCloseSiblings = closeSiblings ?? group?.closeSiblingsDefault ?? false
 
-  if (!resolvedContent && isDevelopment) {
+  if (!hasResolvedContent && isDevelopment) {
     console.warn('RevealPanel requires either a content or revealContent prop.')
   }
 
@@ -398,6 +428,13 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
 
   const setExplicitTriggerId = React.useCallback((id: string) => {
     setExplicitTriggerIdState(id)
+  }, [])
+
+  const clearPhaseTimer = React.useCallback(() => {
+    if (phaseTimerRef.current) {
+      clearTimeout(phaseTimerRef.current)
+      phaseTimerRef.current = null
+    }
   }, [])
 
   const open = React.useCallback(() => {
@@ -453,6 +490,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       element.setAttribute('aria-expanded', String(isOpen))
       element.setAttribute('aria-controls', contentId)
       element.setAttribute('data-state', isOpen ? 'open' : 'closed')
+      element.setAttribute('data-phase', phase)
       if (disabled) {
         element.setAttribute('aria-disabled', 'true')
         element.setAttribute('data-disabled', '')
@@ -473,6 +511,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     for (const element of restoreElements) {
       element.setAttribute('aria-controls', contentId)
       element.setAttribute('data-state', isOpen ? 'open' : 'closed')
+      element.setAttribute('data-phase', phase)
       if (disabled) {
         element.setAttribute('aria-disabled', 'true')
         element.setAttribute('data-disabled', '')
@@ -489,7 +528,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     }
 
     setDelegatedTriggerId(nextDelegatedTriggerId)
-  }, [contentId, disabled, instanceId, isOpen, restoreAttr, triggerAttr])
+  }, [contentId, disabled, instanceId, isOpen, phase, restoreAttr, triggerAttr])
 
   React.useEffect(() => {
     syncDelegatedA11y()
@@ -622,6 +661,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const revealContextValue = React.useMemo<RevealItemContextValue>(
     () => ({
       isOpen,
+      phase,
       disabled,
       contentId,
       triggerId: labelledById,
@@ -630,7 +670,17 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       open,
       close,
     }),
-    [close, contentId, disabled, isOpen, labelledById, open, setExplicitTriggerId, setLastTrigger],
+    [
+      close,
+      contentId,
+      disabled,
+      isOpen,
+      labelledById,
+      open,
+      phase,
+      setExplicitTriggerId,
+      setLastTrigger,
+    ],
   )
 
   const resolveScrollableAncestor = React.useCallback((element: HTMLElement | null) => {
@@ -1046,6 +1096,61 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     ? { duration: 0 }
     : { duration: 0.35, ease: shellEase }
 
+  const openingPhaseDurationMs = prefersReducedMotion ? 0 : magicMotion ? 500 : 400
+  const closingPhaseDurationMs = prefersReducedMotion ? 0 : 400
+  const isContentVisible = phase === 'opening' || phase === 'open'
+  const shouldRenderContent = hasResolvedContent && (keepMounted || phase !== 'closed')
+  const contentHiddenStyles = {
+    height: 0,
+    opacity: 0,
+    filter: magicMotion && !prefersReducedMotion ? `blur(${revealBlurPx}px)` : undefined,
+  }
+  const contentVisibleStyles = {
+    height: 'auto',
+    opacity: 1,
+    filter: magicMotion && !prefersReducedMotion ? 'blur(0px)' : undefined,
+  }
+
+  React.useEffect(() => {
+    if (previousOpenRef.current === isOpen) return
+
+    previousOpenRef.current = isOpen
+    clearPhaseTimer()
+    setPhase(
+      isOpen
+        ? openingPhaseDurationMs === 0
+          ? 'open'
+          : 'opening'
+        : closingPhaseDurationMs === 0
+          ? 'closed'
+          : 'closing',
+    )
+  }, [clearPhaseTimer, closingPhaseDurationMs, isOpen, openingPhaseDurationMs])
+
+  React.useEffect(() => {
+    clearPhaseTimer()
+
+    if (phase === 'opening') {
+      phaseTimerRef.current = setTimeout(() => {
+        phaseTimerRef.current = null
+        setPhase((currentPhase) => (currentPhase === 'opening' ? 'open' : currentPhase))
+      }, openingPhaseDurationMs)
+      return clearPhaseTimer
+    }
+
+    if (phase === 'closing') {
+      phaseTimerRef.current = setTimeout(() => {
+        phaseTimerRef.current = null
+        setPhase((currentPhase) => (currentPhase === 'closing' ? 'closed' : currentPhase))
+      }, closingPhaseDurationMs)
+      return clearPhaseTimer
+    }
+
+    return clearPhaseTimer
+  }, [clearPhaseTimer, closingPhaseDurationMs, openingPhaseDurationMs, phase])
+
+  React.useEffect(() => clearPhaseTimer, [clearPhaseTimer])
+
   return (
     <LayoutGroup>
       <RevealHierarchyContext.Provider value={hierarchyContextValue}>
@@ -1055,12 +1160,14 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
             ref={setContainerNode}
             data-reveal-scope
             data-state={isOpen ? 'open' : 'closed'}
+            data-phase={phase}
             data-disabled={disabled ? '' : undefined}
           >
             <motion.div
               layout={magicMotion && !prefersReducedMotion}
               className="relative z-10"
               data-state={isOpen ? 'open' : 'closed'}
+              data-phase={phase}
               animate={
                 magicMotion && !prefersReducedMotion
                   ? { y: isOpen ? -parallaxOffset : 0 }
@@ -1071,53 +1178,44 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
               {topRegion}
             </motion.div>
 
-            <AnimatePresence initial={false}>
-              {isOpen && resolvedContent ? (
-                <motion.div
-                  id={contentId}
-                  role="region"
-                  aria-labelledby={labelledById}
-                  aria-label={labelledById ? undefined : regionLabel}
-                  data-state={isOpen ? 'open' : 'closed'}
-                  initial={{
-                    height: 0,
-                    opacity: 0,
-                    filter:
-                      magicMotion && !prefersReducedMotion ? `blur(${revealBlurPx}px)` : undefined,
-                  }}
-                  animate={{
-                    height: 'auto',
-                    opacity: 1,
-                    filter: magicMotion && !prefersReducedMotion ? 'blur(0px)' : undefined,
-                  }}
-                  exit={{
-                    height: 0,
-                    opacity: 0,
-                    filter:
-                      magicMotion && !prefersReducedMotion ? `blur(${revealBlurPx}px)` : undefined,
-                  }}
-                  transition={contentTransition}
-                  className="relative z-0 overflow-hidden"
-                >
-                  <motion.div layout={magicMotion && !prefersReducedMotion}>
-                    {typeof resolvedContent === 'function'
-                      ? resolvedContent({
-                          close,
-                          open,
-                          isOpen,
-                          contentId,
-                          triggerId: labelledById,
-                        })
-                      : resolvedContent}
-                  </motion.div>
+            {shouldRenderContent ? (
+              <motion.div
+                id={contentId}
+                role="region"
+                hidden={keepMounted && phase === 'closed'}
+                aria-labelledby={labelledById}
+                aria-label={labelledById ? undefined : regionLabel}
+                aria-hidden={!isContentVisible ? true : undefined}
+                data-state={isOpen ? 'open' : 'closed'}
+                data-phase={phase}
+                initial={phase === 'open' ? false : contentHiddenStyles}
+                animate={isContentVisible ? contentVisibleStyles : contentHiddenStyles}
+                transition={contentTransition}
+                className={cn(
+                  'relative z-0 overflow-hidden',
+                  !isContentVisible && 'pointer-events-none',
+                )}
+              >
+                <motion.div layout={magicMotion && !prefersReducedMotion}>
+                  {typeof resolvedContent === 'function'
+                    ? resolvedContent({
+                        close,
+                        open,
+                        isOpen,
+                        phase,
+                        contentId,
+                        triggerId: labelledById,
+                      })
+                    : resolvedContent}
                 </motion.div>
-              ) : null}
-            </AnimatePresence>
+              </motion.div>
+            ) : null}
 
             <motion.div
               layout={magicMotion && !prefersReducedMotion}
               className="relative z-10"
               data-state={isOpen ? 'open' : 'closed'}
+              data-phase={phase}
               animate={
                 magicMotion && !prefersReducedMotion
                   ? { y: isOpen ? parallaxOffset : 0 }
