@@ -3,7 +3,6 @@
 import confetti from 'canvas-confetti'
 import {
   ArrowRight,
-  Bot,
   BrainCircuit,
   Check,
   Clipboard,
@@ -13,7 +12,6 @@ import {
   GitCompareArrows,
   Menu,
   Moon,
-  SearchCode,
   ShieldCheck,
   Sparkles,
   SunMedium,
@@ -29,6 +27,7 @@ import {
   RevealTrigger,
   useRevealPanelState,
 } from 'reveal-ui'
+import { DocsExperience } from '@/components/site/docs-experience'
 import { RevealLogoMark } from '@/components/site/logo-mark'
 import {
   Accordion,
@@ -220,16 +219,6 @@ const pressureCards = [
   },
 ] as const
 
-const aiContext = [
-  'Primary API: `RevealPanel` for persistent-summary disclosure in React.',
-  'Related exports: `RevealGroup`, `RevealTrigger`, `RevealClose`, and the deprecated alias `RevealSplitter`.',
-  'The `content` prop accepts either nodes or a render function with `open`, `close`, `isOpen`, `phase`, and IDs.',
-  '`useRevealPanelState()` lets nested revealed components react to `closed`, `opening`, `open`, and `closing` without prop drilling.',
-  '`keepMounted` keeps the revealed subtree mounted through `closed` when a panel needs full lifecycle visibility.',
-  'Best fit: inline reveal editors, expanding card disclosure, and nested reveal flows inside dialogs or cards.',
-  'Key behaviors: grouped sibling exclusivity, nested close propagation, optional motion, and scroll coordination.',
-]
-
 const researchLinks = [
   {
     href: 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Forms/Customizable_select',
@@ -270,7 +259,7 @@ const faqItems = [
   },
   {
     answer:
-      'Yes. The site ships explicit metadata, structured data, sitemap, robots, and `llms.txt`. The docs also state the API in direct terms so agents can identify the primitive quickly.',
+      'Yes. The site ships explicit metadata, structured data, sitemap, robots, and `llms.txt`, so assistants can discover the package without needing a separate AI-only docs block.',
     question: 'Is the site optimized for AI-assisted development?',
     value: 'item-4',
   },
@@ -298,50 +287,6 @@ const installCommands = [
     manager: 'bun',
   },
 ] as const
-
-const exampleSnippet = `import * as React from 'react'
-import {
-  RevealClose,
-  RevealGroup,
-  RevealPanel,
-  RevealTrigger,
-  useRevealPanelState,
-} from 'reveal-ui'
-
-<RevealPanel
-  keepMounted
-  content={({ close, phase }) => (
-    <RevealGroup closeSiblings>
-      <RevealLifecycle phase={phase} />
-      <PropertyChoices
-        onPick={(propertyId) => {
-          setProperty(propertyId)
-          close()
-        }}
-      />
-    </RevealGroup>
-  )}
->
-  <RevealPanel.Top>
-    <RevealTrigger>Compare properties inline</RevealTrigger>
-  </RevealPanel.Top>
-  <RevealPanel.Bottom>
-    <FooterSummary />
-  </RevealPanel.Bottom>
-</RevealPanel>
-
-function RevealLifecycle({ phase }) {
-  const panel = useRevealPanelState()
-
-  React.useEffect(() => {
-    if (phase !== 'opening' && phase !== 'open') return
-    const controller = new AbortController()
-    fetch('/api/preview', { signal: controller.signal })
-    return () => controller.abort()
-  }, [phase])
-
-  return <StatusBadge>{panel.phase}</StatusBadge>
-}`
 
 const navigationItems = [
   { id: 'docs', label: 'Docs' },
@@ -1848,72 +1793,7 @@ export function ShowcasePage() {
         </section>
 
         <section className="section-shell" id="docs">
-          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="space-y-8">
-              <SectionHeading
-                description="The site stays explicit so both humans and coding agents can identify the public API, the intended use case, and the lifecycle hooks quickly."
-                kicker="Docs"
-                title="Quick API context"
-              />
-
-              <Card className="glass-card rounded-md border border-border/60">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Bot className="size-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl">Quick context for an AI agent</CardTitle>
-                      <CardDescription>
-                        This is the shortest truthful summary of what the package is and how to use
-                        it.
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {aiContext.map((item) => (
-                    <div
-                      className="rounded-md border border-border/60 bg-card px-4 py-3 text-sm leading-6 text-foreground/85"
-                      key={item}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="glass-card rounded-md border border-border/60">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <SearchCode className="size-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">Drop-in starting point</CardTitle>
-                    <CardDescription>
-                      Enough code for a developer or agent to start integrating the pattern.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="code-block whitespace-pre-wrap">{exampleSnippet}</div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">structured data</Badge>
-                  <Badge variant="outline">sitemap</Badge>
-                  <Badge variant="outline">robots</Badge>
-                  <Badge variant="outline">manifest</Badge>
-                  <Badge variant="outline">llms.txt</Badge>
-                </div>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  These signals improve discoverability and machine readability. `llms.txt` is an
-                  interoperability hint, not a guaranteed ranking factor.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <DocsExperience />
         </section>
 
         <section className="section-shell pt-0">
