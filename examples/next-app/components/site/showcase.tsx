@@ -15,7 +15,13 @@ import {
   SunMedium,
 } from 'lucide-react'
 import * as React from 'react'
-import { RevealClose, RevealGroup, RevealPanel, RevealTrigger } from 'reveal-ui'
+import {
+  RevealClose,
+  RevealGroup,
+  RevealPanel,
+  type RevealPanelProps,
+  RevealTrigger,
+} from 'reveal-ui'
 import { RevealLogoMark } from '@/components/site/logo-mark'
 import {
   Accordion,
@@ -261,9 +267,12 @@ const navigationItems = [
   { id: 'faq', label: 'FAQ' },
 ] as const
 
+const stickyHeaderScrollOffset = 96
+const chooserViewportScrollOffset = 12
 const themeStorageKey = 'reveal-ui-docs-theme'
 
 type ThemeMode = 'light' | 'dark'
+type RevealScrollContainer = RevealPanelProps['scrollContainer']
 
 function getProperty(propertyId: string) {
   return properties.find((property) => property.id === propertyId) ?? properties[0]
@@ -746,11 +755,35 @@ function PropertyRevealCard({
   onSelect,
   property,
   selectedPropertyId,
+  scrollContainer,
 }: {
   onSelect: (propertyId: string) => void
   property: Property
   selectedPropertyId: string
+  scrollContainer: RevealScrollContainer
 }) {
+  const panelRef = React.useRef<HTMLDivElement | null>(null)
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!isOpen) return
+
+    const panel = panelRef.current
+    const container = typeof scrollContainer === 'function' ? scrollContainer() : scrollContainer
+    if (!panel || !container) return
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const panelTop =
+      container.scrollTop +
+      (panel.getBoundingClientRect().top - container.getBoundingClientRect().top)
+    const targetTop = Math.max(0, panelTop - chooserViewportScrollOffset)
+
+    container.scrollTo({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      top: targetTop,
+    })
+  }, [isOpen, scrollContainer])
+
   return (
     <RevealPanel
       className="overflow-hidden rounded-md bg-card shadow-none"
@@ -785,6 +818,11 @@ function PropertyRevealCard({
         </div>
       )}
       magicMotion
+      onOpenChange={setIsOpen}
+      ref={panelRef}
+      scrollContainer={scrollContainer}
+      scrollOffset={chooserViewportScrollOffset}
+      scrollOnOpen
     >
       <RevealPanel.Top>
         <div className="bg-card px-5 py-4">
@@ -824,6 +862,7 @@ function PropertyRevealCard({
 function RevealSolutionDemo() {
   const [selectedPropertyId, setSelectedPropertyId] = React.useState('palm-residency')
   const selectedProperty = getProperty(selectedPropertyId)
+  const chooserViewportRef = React.useRef<HTMLDivElement | null>(null)
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -844,7 +883,10 @@ function RevealSolutionDemo() {
               </RevealClose>
             </div>
 
-            <ScrollArea className="mt-5 h-[26rem] rounded-md bg-background">
+            <ScrollArea
+              className="mt-5 h-[26rem] rounded-md bg-background"
+              viewportRef={chooserViewportRef}
+            >
               <RevealGroup closeSiblings>
                 <div className="space-y-3 p-4">
                   {properties.map((property) => (
@@ -853,6 +895,7 @@ function RevealSolutionDemo() {
                       onSelect={setSelectedPropertyId}
                       property={property}
                       selectedPropertyId={selectedPropertyId}
+                      scrollContainer={() => chooserViewportRef.current}
                     />
                   ))}
                 </div>
@@ -862,6 +905,8 @@ function RevealSolutionDemo() {
         )}
         magicMotion
         regionLabel="Inline property chooser"
+        scrollOffset={stickyHeaderScrollOffset}
+        scrollOnOpen
       >
         <RevealPanel.Top>
           <div className="bg-card px-6 py-6">
