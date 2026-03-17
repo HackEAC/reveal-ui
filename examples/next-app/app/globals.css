@@ -78,11 +78,21 @@
   }
 
   .section-kicker {
-    @apply inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm font-semibold uppercase tracking-[0.14em] text-secondary-foreground;
+    @apply inline-flex items-center gap-2 rounded-full bg-secondary px-2.5 py-1 text-sm font-medium text-secondary-foreground;
   }
 
   .glass-card {
     @apply bg-card shadow-soft;
+  }
+
+  .hero-frame {
+    @apply mx-auto w-full max-w-6xl rounded-[1rem] border border-border/60 bg-card/90 shadow-soft backdrop-blur;
+  }
+
+  .hero-spotlight {
+    background:
+      radial-gradient(circle at top, hsl(var(--primary) / 0.12), transparent 42%),
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.96) 100%);
   }
 
   .code-block {
