@@ -1,32 +1,17 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { DocsExperience } from '../examples/next-app/components/site/docs-experience'
+const React = require('react')
+const { render, screen } = require('@testing-library/react')
+const userEvent = require('@testing-library/user-event').default
 
 jest.mock('@/components/ui/badge', () => {
-  const React = require('react')
-
   return {
-    Badge: ({
-      children,
-      className,
-      ...props
-    }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) =>
+    Badge: ({ children, className, ...props }) =>
       React.createElement('div', { className, ...props }, children),
   }
 })
 
 jest.mock('@/components/ui/card', () => {
-  const React = require('react')
-
-  const makeComponent = (tagName: 'div' | 'h3' | 'p') =>
-    React.forwardRef(function MockComponent(
-      {
-        children,
-        className,
-        ...props
-      }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode },
-      ref: React.ForwardedRef<HTMLElement>,
-    ) {
+  const makeComponent = (tagName) =>
+    React.forwardRef(function MockComponent({ children, className, ...props }, ref) {
       return React.createElement(tagName, { className, ...props, ref }, children)
     })
 
@@ -40,21 +25,21 @@ jest.mock('@/components/ui/card', () => {
 })
 
 jest.mock('@/components/ui/separator', () => {
-  const React = require('react')
-
   return {
-    Separator: ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) =>
+    Separator: ({ className, ...props }) =>
       React.createElement('div', { className, role: 'separator', ...props }),
   }
 })
 
 jest.mock('@/lib/utils', () => ({
-  cn: (...inputs: Array<string | false | null | undefined>) => inputs.filter(Boolean).join(' '),
+  cn: (...inputs) => inputs.filter(Boolean).join(' '),
 }))
+
+const { DocsExperience } = require('../examples/next-app/components/site/docs-experience')
 
 describe('DocsExperience', () => {
   it('renders the human-first docs shell by default', () => {
-    render(<DocsExperience />)
+    render(React.createElement(DocsExperience))
 
     expect(
       screen.getByRole('heading', {
@@ -75,7 +60,7 @@ describe('DocsExperience', () => {
   it('switches between docs pages and updates the active content', async () => {
     const user = userEvent.setup()
 
-    render(<DocsExperience />)
+    render(React.createElement(DocsExperience))
 
     await user.click(
       screen.getByRole('button', {
@@ -98,7 +83,7 @@ describe('DocsExperience', () => {
     const user = userEvent.setup()
     const scrollIntoView = jest.spyOn(Element.prototype, 'scrollIntoView')
 
-    render(<DocsExperience />)
+    render(React.createElement(DocsExperience))
 
     await user.click(screen.getByRole('button', { name: 'Quick start' }))
 
