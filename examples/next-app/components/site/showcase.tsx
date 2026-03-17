@@ -5,6 +5,7 @@ import {
   Bot,
   BrainCircuit,
   Clock3,
+  ExternalLink,
   Focus,
   GitCompareArrows,
   Menu,
@@ -20,7 +21,9 @@ import {
   RevealGroup,
   RevealPanel,
   type RevealPanelProps,
+  type RevealPhase,
   RevealTrigger,
+  useRevealPanelState,
 } from 'reveal-ui'
 import { RevealLogoMark } from '@/components/site/logo-mark'
 import {
@@ -198,7 +201,9 @@ const pressureCards = [
 const aiContext = [
   'Primary API: `RevealPanel` for persistent-summary disclosure in React.',
   'Related exports: `RevealGroup`, `RevealTrigger`, `RevealClose`, and the deprecated alias `RevealSplitter`.',
-  'The `content` prop accepts either nodes or a render function with `open`, `close`, `isOpen`, and IDs.',
+  'The `content` prop accepts either nodes or a render function with `open`, `close`, `isOpen`, `phase`, and IDs.',
+  '`useRevealPanelState()` lets nested revealed components react to `closed`, `opening`, `open`, and `closing` without prop drilling.',
+  '`keepMounted` keeps the revealed subtree mounted through `closed` when a panel needs full lifecycle visibility.',
   'Best fit: inline reveal editors, expanding card disclosure, and nested reveal flows inside dialogs or cards.',
   'Key behaviors: grouped sibling exclusivity, nested close propagation, optional motion, and scroll coordination.',
 ]
@@ -232,16 +237,20 @@ const faqItems = [
 
 const installSnippet = `npm install reveal-ui motion react react-dom`
 
-const exampleSnippet = `import {
+const exampleSnippet = `import * as React from 'react'
+import {
   RevealClose,
   RevealGroup,
   RevealPanel,
   RevealTrigger,
+  useRevealPanelState,
 } from 'reveal-ui'
 
 <RevealPanel
-  content={({ close }) => (
+  keepMounted
+  content={({ close, phase }) => (
     <RevealGroup closeSiblings>
+      <RevealLifecycle phase={phase} />
       <PropertyChoices
         onPick={(propertyId) => {
           setProperty(propertyId)
@@ -257,7 +266,20 @@ const exampleSnippet = `import {
   <RevealPanel.Bottom>
     <FooterSummary />
   </RevealPanel.Bottom>
-</RevealPanel>`
+</RevealPanel>
+
+function RevealLifecycle({ phase }) {
+  const panel = useRevealPanelState()
+
+  React.useEffect(() => {
+    if (phase !== 'opening' && phase !== 'open') return
+    const controller = new AbortController()
+    fetch('/api/preview', { signal: controller.signal })
+    return () => controller.abort()
+  }, [phase])
+
+  return <StatusBadge>{panel.phase}</StatusBadge>
+}`
 
 const navigationItems = [
   { id: 'overview', label: 'Overview' },
@@ -280,14 +302,42 @@ function getProperty(propertyId: string) {
 
 function toneClass(level: string) {
   if (level === 'Low') {
-    return 'bg-emerald-50 text-emerald-700'
+    return 'bg-secondary text-secondary-foreground'
   }
 
   if (level === 'Medium') {
-    return 'bg-amber-50 text-amber-700'
+    return 'bg-accent text-accent-foreground'
   }
 
-  return 'bg-rose-50 text-rose-700'
+  return 'bg-primary/12 text-primary'
+}
+
+const phaseToneClass: Record<RevealPhase, string> = {
+  closed: 'bg-secondary text-secondary-foreground',
+  closing: 'bg-accent text-accent-foreground',
+  open: 'bg-primary text-primary-foreground',
+  opening: 'bg-primary/12 text-primary',
+}
+
+function RevealPhaseBadge({
+  className,
+  label,
+  phase,
+}: {
+  className?: string
+  label: string
+  phase: RevealPhase
+}) {
+  return (
+    <Badge className={cn('px-3 py-1.5', phaseToneClass[phase], className)}>
+      {label} {phase}
+    </Badge>
+  )
+}
+
+function RevealPhaseHookBadge({ className, label }: { className?: string; label: string }) {
+  const { phase } = useRevealPanelState()
+  return <RevealPhaseBadge className={className} label={label} phase={phase} />
 }
 
 function SectionHeading({
@@ -330,13 +380,11 @@ function PressureCard({
     <Card className="glass-card h-full rounded-md">
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(intensity))}>
+          <Badge className={cn('px-3 py-1.5', toneClass(intensity))}>
             user intensity {intensity}
           </Badge>
-          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(timeWaste))}>
-            time waste {timeWaste}
-          </Badge>
-          <Badge className={cn('px-3 py-1 text-[0.7rem]', toneClass(implementationWeirdness))}>
+          <Badge className={cn('px-3 py-1.5', toneClass(timeWaste))}>time waste {timeWaste}</Badge>
+          <Badge className={cn('px-3 py-1.5', toneClass(implementationWeirdness))}>
             UI weirdness {implementationWeirdness}
           </Badge>
         </div>
@@ -370,7 +418,7 @@ function HeroPreview() {
           <div className="grid gap-3 sm:grid-cols-2">
             {featured.attributes.map((attribute) => (
               <div className="rounded-md bg-accent px-4 py-3" key={attribute.label}>
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {attribute.label}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-foreground">{attribute.value}</p>
@@ -459,7 +507,7 @@ function SelectTrapDemo() {
                     ))}
                   </SelectGroup>
                   <SelectSeparator />
-                  <div className="px-3 py-2 text-xs leading-5 text-muted-foreground">
+                  <div className="px-3 py-2 text-sm leading-6 text-muted-foreground">
                     Price, risk, permits, timeline, and notes are invisible until after the pick.
                   </div>
                 </SelectContent>
@@ -483,7 +531,7 @@ function SelectTrapDemo() {
                     ['Risk', selectedProperty.risk],
                   ].map(([label, value]) => (
                     <div className="rounded-md bg-muted px-4 py-3" key={label}>
-                      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {label}
                       </p>
                       <p className="mt-2 text-sm font-semibold text-foreground">{value}</p>
@@ -500,14 +548,14 @@ function SelectTrapDemo() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">Friction created by the control</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-3">
+              <CardContent className="grid gap-3">
                 {[
                   ['Comparison passes', String(comparisonPasses)],
                   ['Visible attributes before select', '1'],
                   ['Hidden attributes before select', '5+'],
                 ].map(([label, value]) => (
                   <div className="rounded-md bg-card px-4 py-4" key={label}>
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       {label}
                     </p>
                     <p className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">
@@ -527,7 +575,7 @@ function SelectTrapDemo() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md bg-muted px-4 py-4 font-mono text-xs leading-6 text-foreground/80">
+                <div className="rounded-md bg-muted px-4 py-4 font-mono text-sm leading-6 text-foreground/80">
                   {`${selectedProperty.label} | ${selectedProperty.price} | ${selectedProperty.yield} | ${selectedProperty.occupancy} | ${selectedProperty.risk}`}
                 </div>
               </CardContent>
@@ -679,7 +727,7 @@ function ModalDetourDemo() {
                                       ['Setup', property.setupTime],
                                     ].map(([label, value]) => (
                                       <div className="rounded-md bg-muted px-4 py-3" key={label}>
-                                        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                                           {label}
                                         </p>
                                         <p className="mt-2 text-sm font-semibold text-foreground">
@@ -787,12 +835,17 @@ function PropertyRevealCard({
   return (
     <RevealPanel
       className="overflow-hidden rounded-md bg-card shadow-none"
-      content={({ close }) => (
+      content={({ close, phase }) => (
         <div className="bg-card px-5 py-5">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <RevealPhaseBadge label="render phase" phase={phase} />
+            <RevealPhaseHookBadge label="hook phase" />
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             {property.attributes.map((attribute) => (
               <div className="rounded-md bg-muted px-4 py-3" key={attribute.label}>
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {attribute.label}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-foreground">{attribute.value}</p>
@@ -833,6 +886,7 @@ function PropertyRevealCard({
                 <Badge variant={selectedPropertyId === property.id ? 'secondary' : 'outline'}>
                   {selectedPropertyId === property.id ? 'Selected' : 'Comparable'}
                 </Badge>
+                <RevealPhaseHookBadge label="card phase" />
               </div>
               <p className="text-sm leading-6 text-muted-foreground">{property.summary}</p>
             </div>
@@ -847,7 +901,7 @@ function PropertyRevealCard({
 
       <RevealPanel.Bottom>
         <div className="bg-secondary px-5 py-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="outline">Yield {property.yield}</Badge>
             <Badge variant="outline">Occupancy {property.occupancy}</Badge>
             <Badge variant="outline">Risk {property.risk}</Badge>
@@ -868,7 +922,7 @@ function RevealSolutionDemo() {
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
       <RevealPanel
         className="glass-card overflow-hidden rounded-md"
-        content={() => (
+        content={({ phase }) => (
           <div className="bg-card px-6 py-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
@@ -877,6 +931,10 @@ function RevealSolutionDemo() {
                   Open one card at a time, inspect the attributes, and select inline. No second
                   modal required.
                 </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <RevealPhaseBadge label="render phase" phase={phase} />
+                  <RevealPhaseHookBadge label="hook phase" />
+                </div>
               </div>
               <RevealClose asChild>
                 <Button variant="ghost">Collapse chooser</Button>
@@ -922,6 +980,9 @@ function RevealSolutionDemo() {
                     between persistent top and bottom regions. The user never loses the form they
                     were actually working in.
                   </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <RevealPhaseHookBadge label="panel phase" />
                 </div>
               </div>
               <RevealTrigger asChild>
@@ -1240,7 +1301,7 @@ export function ShowcasePage() {
                     { label: 'Extra modal required', value: 'no' as const },
                   ].map((item) => (
                     <div className="rounded-md bg-background px-4 py-4" key={item.label}>
-                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         {item.label}
                       </p>
                       <p className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">
@@ -1410,13 +1471,17 @@ export function ShowcasePage() {
                     },
                   ].map((item) => (
                     <a
-                      className="block rounded-md bg-card px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent"
+                      className="flex items-start justify-between gap-3 rounded-md bg-card px-4 py-4 text-sm font-semibold leading-6 text-foreground transition-colors hover:bg-accent"
                       href={item.href}
                       key={item.href}
                       rel="noreferrer"
                       target="_blank"
                     >
-                      {item.label}
+                      <span>{item.label}</span>
+                      <ExternalLink
+                        aria-hidden="true"
+                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                      />
                     </a>
                   ))}
                 </CardContent>
@@ -1510,7 +1575,9 @@ export function ShowcasePage() {
               ))}
             </div>
 
-            <p className="text-center text-sm text-muted-foreground">
+            <Separator />
+
+            <p className="text-center text-sm leading-6 text-muted-foreground">
               Made with ❤️ by{' '}
               <a
                 className="font-semibold text-foreground transition-colors hover:text-primary"

@@ -1,7 +1,14 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
-import { RevealClose, RevealGroup, RevealPanel, RevealSplitter, RevealTrigger } from '../src'
+import {
+  RevealClose,
+  RevealGroup,
+  RevealPanel,
+  RevealSplitter,
+  RevealTrigger,
+  useRevealPanelState,
+} from '../src'
 import { setReducedMotionPreference } from './match-media'
 
 describe('RevealPanel', () => {
@@ -261,6 +268,215 @@ describe('RevealPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Open second' }))
 
     expect(screen.getByRole('region')).toHaveAttribute('aria-labelledby', 'second-trigger')
+  })
+
+  it('exposes closed, opening, open, and closing phases through render props and hooks', () => {
+    jest.useFakeTimers()
+
+    function PhaseProbe() {
+      const { phase } = useRevealPanelState()
+      return <p>Hook phase {phase}</p>
+    }
+
+    try {
+      const { container } = render(
+        <RevealPanel
+          content={({ phase }) => (
+            <div>
+              <p>Render phase {phase}</p>
+              <PhaseProbe />
+              <RevealClose>Close phased</RevealClose>
+            </div>
+          )}
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open phased</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      const trigger = screen.getByRole('button', { name: 'Open phased' })
+
+      expect(scope).toHaveAttribute('data-phase', 'closed')
+      expect(trigger).toHaveAttribute('data-phase', 'closed')
+
+      fireEvent.click(trigger)
+
+      expect(scope).toHaveAttribute('data-phase', 'opening')
+      expect(trigger).toHaveAttribute('data-phase', 'opening')
+      expect(screen.getByText('Render phase opening')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase opening')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(scope).toHaveAttribute('data-phase', 'open')
+      expect(trigger).toHaveAttribute('data-phase', 'open')
+      expect(screen.getByText('Render phase open')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase open')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close phased' }))
+
+      expect(scope).toHaveAttribute('data-phase', 'closing')
+      expect(trigger).toHaveAttribute('data-phase', 'closing')
+      expect(screen.getByText('Render phase closing')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase closing')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(screen.queryByText('Render phase closing')).not.toBeInTheDocument()
+      expect(screen.queryByText('Hook phase closing')).not.toBeInTheDocument()
+      expect(scope).toHaveAttribute('data-phase', 'closed')
+      expect(trigger).toHaveAttribute('data-phase', 'closed')
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('keeps revealed content mounted through the closed phase when keepMounted is enabled', () => {
+    jest.useFakeTimers()
+
+    function PhaseProbe() {
+      const { phase } = useRevealPanelState()
+      return <p>Hook phase {phase}</p>
+    }
+
+    try {
+      const { container } = render(
+        <RevealPanel
+          content={({ phase }) => (
+            <div>
+              <p>Render phase {phase}</p>
+              <PhaseProbe />
+              <RevealClose>Close kept</RevealClose>
+            </div>
+          )}
+          keepMounted
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open kept</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      const region = container.querySelector('[role="region"]')
+
+      expect(scope).toHaveAttribute('data-phase', 'closed')
+      expect(region).toHaveAttribute('hidden')
+      expect(screen.getByText('Render phase closed')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase closed')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open kept' }))
+
+      expect(region).not.toHaveAttribute('hidden')
+      expect(screen.getByText('Render phase opening')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase opening')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(screen.getByText('Render phase open')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase open')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close kept' }))
+
+      expect(screen.getByText('Render phase closing')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase closing')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(scope).toHaveAttribute('data-phase', 'closed')
+      expect(region).toHaveAttribute('hidden')
+      expect(screen.getByText('Render phase closed')).toBeInTheDocument()
+      expect(screen.getByText('Hook phase closed')).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('tracks phases independently for nested reveal panels', () => {
+    jest.useFakeTimers()
+
+    try {
+      render(
+        <RevealPanel
+          content={({ phase: outerPhase }) => (
+            <div>
+              <p>Outer phase {outerPhase}</p>
+              <RevealPanel
+                content={({ phase: innerPhase }) => (
+                  <div>
+                    <p>Inner phase {innerPhase}</p>
+                    <RevealClose>Close inner phased</RevealClose>
+                  </div>
+                )}
+              >
+                <RevealPanel.Top>
+                  <RevealTrigger>Open inner phased</RevealTrigger>
+                </RevealPanel.Top>
+                <RevealPanel.Bottom>
+                  <div />
+                </RevealPanel.Bottom>
+              </RevealPanel>
+            </div>
+          )}
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open outer phased</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open outer phased' }))
+      expect(screen.getByText('Outer phase opening')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(screen.getByText('Outer phase open')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open inner phased' }))
+      expect(screen.getByText('Inner phase opening')).toBeInTheDocument()
+      expect(screen.getByText('Outer phase open')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(screen.getByText('Inner phase open')).toBeInTheDocument()
+      expect(screen.getByText('Outer phase open')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close inner phased' }))
+      expect(screen.getByText('Inner phase closing')).toBeInTheDocument()
+      expect(screen.getByText('Outer phase open')).toBeInTheDocument()
+
+      act(() => {
+        jest.advanceTimersByTime(401)
+      })
+
+      expect(screen.queryByText('Inner phase closing')).not.toBeInTheDocument()
+      expect(screen.getByText('Outer phase open')).toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('still opens correctly when reduced motion is preferred', async () => {

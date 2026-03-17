@@ -78,7 +78,7 @@
   }
 
   .section-kicker {
-    @apply inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground;
+    @apply inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm font-semibold uppercase tracking-[0.14em] text-secondary-foreground;
   }
 
   .glass-card {
