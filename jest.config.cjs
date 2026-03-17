@@ -1,6 +1,13 @@
 /** @type {import('jest').Config} */
 module.exports = {
   clearMocks: true,
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/examples/next-app/$1',
+    '^react$': '<rootDir>/node_modules/react',
+    '^react-dom$': '<rootDir>/node_modules/react-dom',
+    '^react/jsx-dev-runtime$': '<rootDir>/node_modules/react/jsx-dev-runtime.js',
+    '^react/jsx-runtime$': '<rootDir>/node_modules/react/jsx-runtime.js',
+  },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   restoreMocks: true,
   roots: ['<rootDir>/test'],

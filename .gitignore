@@ -7,5 +7,6 @@ coverage
 .playwright-cli
 output/playwright
 examples/next-app/.next
+examples/next-app/.next-dev
 examples/next-app/node_modules
 examples/next-app/out
