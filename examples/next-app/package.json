@@ -2,6 +2,8 @@
   "name": "reveal-ui-next-example",
   "private": true,
   "scripts": {
+    "prebuild": "npm --prefix ../.. run build",
+    "predev": "npm --prefix ../.. run build",
     "build": "next build",
     "dev": "next dev",
     "start": "next start"

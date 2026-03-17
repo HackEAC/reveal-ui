@@ -161,9 +161,8 @@ import { RevealPanel } from 'reveal-ui'
 A small Next.js consumer lives in `examples/next-app`.
 
 ```bash
-cd examples/next-app
-npm install
-npm run dev
+npm run docs:install
+npm run docs:preview
 ```
 
 ## Validation
