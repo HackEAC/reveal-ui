@@ -1190,16 +1190,28 @@ export function ShowcasePage() {
               <Card className="glass-card rounded-md">
                 <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
                   {[
-                    ['Context visible', 'Yes'],
-                    ['Multi-attribute review', 'Inline'],
-                    ['Extra modal required', 'No'],
-                  ].map(([label, value]) => (
-                    <div className="rounded-md bg-background px-4 py-4" key={label}>
+                    { label: 'Context visible', value: 'yes' as const },
+                    { label: 'Multi-attribute review', value: 'Inline' },
+                    { label: 'Extra modal required', value: 'no' as const },
+                  ].map((item) => (
+                    <div className="rounded-md bg-background px-4 py-4" key={item.label}>
                       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        {label}
+                        {item.label}
                       </p>
                       <p className="mt-2 font-display text-3xl tracking-[-0.04em] text-foreground">
-                        {value}
+                        {item.value === 'yes' ? (
+                          <>
+                            <span aria-hidden="true">✅</span>
+                            <span className="sr-only">Yes</span>
+                          </>
+                        ) : item.value === 'no' ? (
+                          <>
+                            <span aria-hidden="true">❌</span>
+                            <span className="sr-only">No</span>
+                          </>
+                        ) : (
+                          item.value
+                        )}
                       </p>
                     </div>
                   ))}
