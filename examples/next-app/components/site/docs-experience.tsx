@@ -89,15 +89,16 @@ const controlledSnippet = `function InlineStack() {
   )
 }`
 
-const migrationSnippet = `// Existing code keeps working
+const upgradeSnippet = `// Before
 import { RevealSplitter } from 'reveal-ui'
 
-// New code should prefer
+// After
 import { RevealPanel } from 'reveal-ui'`
 
 const validationSnippet = `npm install
 npm run lint
 npm run test
+npm run test:coverage
 npm run typecheck
 npm run build
 npm run pack:dry-run
@@ -191,11 +192,11 @@ const docsPages = [
     ],
   },
   {
-    description: 'RevealSplitter compatibility and validation commands.',
+    description: 'Upgrade notes, repository checks, and local example preview.',
     id: 'migration',
-    label: 'Migration',
+    label: 'Validation',
     sections: [
-      { id: 'splitter-alias', label: 'Splitter alias' },
+      { id: 'upgrade', label: 'Upgrade import' },
       { id: 'validation', label: 'Validation' },
       { id: 'local-example', label: 'Local example' },
     ],
@@ -237,11 +238,6 @@ const componentRows: DocsTableRow[] = [
     component: '`useRevealPanelState()`',
     notes: 'Works anywhere inside a `RevealPanel` subtree.',
     purpose: 'Exposes `phase`, `isOpen`, `open`, `close`, and IDs without prop drilling.',
-  },
-  {
-    component: '`RevealSplitter`',
-    notes: 'Deprecated compatibility alias.',
-    purpose: 'Kept only so older codebases can migrate without a breaking import rename.',
   },
 ] as const
 
@@ -499,7 +495,7 @@ const pageFacts: Record<DocsPageId, string[]> = {
   behavior: ['phase-aware', 'close propagate', 'single-open groups'],
   composition: ['top / content / bottom', 'render props', 'state hook'],
   installation: ['react 19', 'motion peer', 'Next example'],
-  migration: ['RevealSplitter alias', 'validation', 'docs preview'],
+  migration: ['upgrade import', 'validation', 'docs preview'],
   overview: ['persistent-summary disclosure', 'inline reveal', 'nested flows'],
 }
 
@@ -740,8 +736,8 @@ function DocsPageContent({ pageId }: { pageId: DocsPageId }) {
                 </CardContent>
               </Card>
               <div className="rounded-md bg-secondary/45 px-4 py-4 text-sm leading-6 text-muted-foreground">
-                `RevealPanel` is the preferred import for new code. `RevealSplitter` only exists to
-                ease migration in existing codebases.
+                `RevealPanel` is the package primitive. If an older prerelease imported
+                `RevealSplitter`, rename that import before upgrading.
               </div>
             </div>
           </div>
@@ -1013,11 +1009,11 @@ function DocsPageContent({ pageId }: { pageId: DocsPageId }) {
   return (
     <div className="space-y-10">
       <DocsSectionBlock
-        description="`RevealSplitter` still points at the same component so older imports do not break, but new code should move to the real primitive name."
-        id="docs-migration-splitter-alias"
-        title="RevealSplitter is a compatibility alias"
+        description="Older prerelease builds exposed `RevealSplitter`. The package now exports only `RevealPanel`, so rename the import when upgrading."
+        id="docs-migration-upgrade"
+        title="Upgrade older imports"
       >
-        <CodeSnippet code={migrationSnippet} />
+        <CodeSnippet code={upgradeSnippet} />
       </DocsSectionBlock>
 
       <DocsSectionBlock
@@ -1150,7 +1146,7 @@ export function DocsExperience() {
                     <li>Primary primitive: `RevealPanel`.</li>
                     <li>Lifecycle phases: `closed`, `opening`, `open`, `closing`.</li>
                     <li>Best fit: inline reveal editors, expanding cards, nested reveal flows.</li>
-                    <li>Compatibility alias: `RevealSplitter`.</li>
+                    <li>Package CI covers lint, tests, pack, smoke, and coverage upload.</li>
                   </ul>
                 </div>
               </div>

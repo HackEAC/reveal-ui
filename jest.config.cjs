@@ -1,6 +1,8 @@
 /** @type {import('jest').Config} */
 module.exports = {
   clearMocks: true,
+  collectCoverageFrom: ['<rootDir>/src/**/*.{ts,tsx}'],
+  coverageReporters: ['text', 'lcov', 'json-summary'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/examples/next-app/$1',

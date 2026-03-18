@@ -55,6 +55,7 @@
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "test": "jest --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "pack:dry-run": "npm pack --dry-run",

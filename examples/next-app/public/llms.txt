@@ -16,7 +16,6 @@ Primary exports:
 - RevealGroup
 - RevealTrigger
 - RevealClose
-- RevealSplitter (deprecated alias of RevealPanel)
 
 Public API concepts:
 - top and bottom regions stay mounted

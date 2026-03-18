@@ -11,7 +11,6 @@ const expectedExports = [
   'RevealClose',
   'RevealGroup',
   'RevealPanel',
-  'RevealSplitter',
   'RevealTrigger',
   'useRevealPanelState',
 ]
@@ -47,7 +46,7 @@ const smokePackageJson = {
 writeFileSync(smokePackageJsonPath, `${JSON.stringify(smokePackageJson, null, 2)}\n`)
 
 try {
-  execFileSync('npm', ['install', '--no-audit', '--no-fund'], {
+  execFileSync('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline'], {
     cwd: smokeDir,
     stdio: 'inherit',
   })

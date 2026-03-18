@@ -13,7 +13,6 @@ export {
   RevealClose,
   RevealGroup,
   RevealPanel,
-  RevealSplitter,
   RevealTrigger,
   useRevealPanelState,
 } from './reveal-panel.js'
