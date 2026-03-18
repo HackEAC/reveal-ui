@@ -327,8 +327,7 @@ const motionPropRows: DocsTableRow[] = [
     type: '`boolean`',
   },
   {
-    details:
-      'Restores the primary scroll target captured during open after the panel settles closed.',
+    details: 'Restores the primary scroll target captured during open as the panel starts closing.',
     prop: '`restoreScrollOnClose`',
     type: '`boolean`',
   },

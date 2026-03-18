@@ -879,13 +879,13 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     [restoreScrollOnClose],
   )
 
-  const previousOpenForScrollRestoreRef = React.useRef(isOpen)
+  const previousOpenForScrollRestoreRef = React.useRef<boolean | null>(null)
 
   React.useLayoutEffect(() => {
     const wasOpen = previousOpenForScrollRestoreRef.current
     previousOpenForScrollRestoreRef.current = isOpen
 
-    if (wasOpen || !isOpen) return
+    if (!isOpen || wasOpen === true) return
 
     restoreScrollSnapshotRef.current = null
     restoreScrollStartedRef.current = false

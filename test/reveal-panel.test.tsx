@@ -321,6 +321,83 @@ describe('RevealPanel', () => {
     }
   })
 
+  it('captures and restores scroll for panels that mount open', () => {
+    jest.useFakeTimers()
+
+    const defaultRect = {
+      bottom: 100,
+      height: 100,
+      left: 0,
+      right: 100,
+      toJSON: () => ({}),
+      top: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+    } satisfies DOMRect
+    let rectSpy: jest.SpyInstance<DOMRect, []> | null = null
+
+    try {
+      const { getScrollY } = installWindowScrollState(150)
+      const documentTop = 620
+      rectSpy = jest
+        .spyOn(Element.prototype, 'getBoundingClientRect')
+        .mockImplementation(function mockRect(this: Element) {
+          if (this instanceof HTMLElement && this.hasAttribute('data-reveal-scope')) {
+            const top = documentTop - getScrollY()
+
+            return {
+              ...defaultRect,
+              bottom: top + defaultRect.height,
+              top,
+              y: top,
+            }
+          }
+
+          return defaultRect
+        })
+
+      render(
+        <RevealPanel
+          defaultOpen
+          scrollOnOpen
+          restoreScrollOnClose
+          content={
+            <div>
+              <p>Mounted open scroll content</p>
+              <RevealClose>Close mounted open</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open mounted scroll</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      advanceTimers(1200)
+
+      expect(getScrollY()).toBe(documentTop)
+      ;(window.scrollTo as unknown as jest.Mock).mockClear()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close mounted open' }))
+
+      advanceTimers(100)
+      expect(window.scrollTo).toHaveBeenCalled()
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(getScrollY()).toBe(150)
+    } finally {
+      rectSpy?.mockRestore()
+      jest.useRealTimers()
+    }
+  })
+
   it('does not restore scroll after close when restoreScrollOnClose is disabled', () => {
     jest.useFakeTimers()
 
