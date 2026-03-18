@@ -5,6 +5,64 @@ import * as revealUi from '../src'
 import { RevealClose, RevealGroup, RevealPanel, RevealTrigger, useRevealPanelState } from '../src'
 import { setReducedMotionPreference } from './match-media'
 
+function setElementRect(element: Element, getTop: () => number, height = 100) {
+  Object.defineProperty(element, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => {
+      const top = getTop()
+
+      return {
+        bottom: top + height,
+        height,
+        left: 0,
+        right: 100,
+        toJSON: () => ({}),
+        top,
+        width: 100,
+        x: 0,
+        y: top,
+      } satisfies DOMRect
+    },
+  })
+}
+
+function installWindowScrollState(initialTop: number) {
+  let scrollY = initialTop
+
+  Object.defineProperty(window, 'scrollY', {
+    configurable: true,
+    get: () => scrollY,
+  })
+
+  ;(window.scrollTo as unknown as jest.Mock).mockImplementation(
+    (options?: ScrollToOptions | number, maybeY?: number) => {
+      if (typeof options === 'number') {
+        scrollY = maybeY ?? 0
+        return
+      }
+
+      scrollY = options?.top ?? scrollY
+    },
+  )
+
+  return {
+    getScrollY: () => scrollY,
+  }
+}
+
+function getScrollToTopCalls() {
+  return (window.scrollTo as unknown as jest.Mock).mock.calls.map(
+    ([options, maybeY]: [ScrollToOptions | number | undefined, number | undefined]) =>
+      typeof options === 'number' ? (maybeY ?? 0) : (options?.top ?? 0),
+  )
+}
+
+function advanceTimers(ms: number) {
+  act(() => {
+    jest.advanceTimersByTime(ms)
+  })
+}
+
 describe('RevealPanel', () => {
   it('reveals and restores content through delegated trigger attributes', async () => {
     const user = userEvent.setup()
@@ -148,6 +206,206 @@ describe('RevealPanel', () => {
       expect(screen.queryByText('Focus content')).not.toBeInTheDocument()
       expect(trigger).toHaveFocus()
     })
+  })
+
+  it('restores the previous window scroll position after close when enabled', () => {
+    jest.useFakeTimers()
+
+    try {
+      const { getScrollY } = installWindowScrollState(150)
+      const documentTop = 620
+      const { container } = render(
+        <RevealPanel
+          scrollOnOpen
+          restoreScrollOnClose
+          content={
+            <div>
+              <p>Scroll content</p>
+              <RevealClose>Close scroll</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open scroll</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      expect(scope).not.toBeNull()
+      setElementRect(scope as Element, () => documentTop - getScrollY())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open scroll' }))
+
+      advanceTimers(1200)
+
+      expect(getScrollY()).toBe(documentTop)
+      ;(window.scrollTo as unknown as jest.Mock).mockClear()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close scroll' }))
+
+      advanceTimers(100)
+      expect(window.scrollTo).toHaveBeenCalled()
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(getScrollY()).toBe(150)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('restores the previous custom scroll container position after close', () => {
+    jest.useFakeTimers()
+
+    const scrollContainer = document.createElement('div')
+    scrollContainer.style.overflowY = 'auto'
+    scrollContainer.scrollTop = 120
+    Object.defineProperty(scrollContainer, 'clientHeight', {
+      configurable: true,
+      value: 200,
+    })
+    Object.defineProperty(scrollContainer, 'scrollHeight', {
+      configurable: true,
+      value: 1000,
+    })
+    setElementRect(scrollContainer, () => 40, 200)
+    document.body.appendChild(scrollContainer)
+
+    try {
+      const panelContentTop = 280
+      const { container } = render(
+        <RevealPanel
+          scrollOnOpen
+          restoreScrollOnClose
+          scrollContainer={scrollContainer}
+          content={
+            <div>
+              <p>Container scroll content</p>
+              <RevealClose>Close container scroll</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open container scroll</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      expect(scope).not.toBeNull()
+      setElementRect(scope as Element, () => 40 + panelContentTop - scrollContainer.scrollTop)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open container scroll' }))
+
+      advanceTimers(1200)
+
+      expect(scrollContainer.scrollTop).toBe(panelContentTop)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close container scroll' }))
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(scrollContainer.scrollTop).toBe(120)
+    } finally {
+      scrollContainer.remove()
+      jest.useRealTimers()
+    }
+  })
+
+  it('does not restore scroll after close when restoreScrollOnClose is disabled', () => {
+    jest.useFakeTimers()
+
+    try {
+      const { getScrollY } = installWindowScrollState(150)
+      const documentTop = 620
+      const { container } = render(
+        <RevealPanel
+          scrollOnOpen
+          content={
+            <div>
+              <p>No restore content</p>
+              <RevealClose>Close without restore</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open without restore</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      expect(scope).not.toBeNull()
+      setElementRect(scope as Element, () => documentTop - getScrollY())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open without restore' }))
+
+      advanceTimers(1200)
+
+      expect(getScrollY()).toBe(documentTop)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close without restore' }))
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(getScrollY()).toBe(documentTop)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('does not capture or restore scroll when scrollOnOpen is disabled', () => {
+    jest.useFakeTimers()
+
+    try {
+      const { getScrollY } = installWindowScrollState(150)
+
+      render(
+        <RevealPanel
+          restoreScrollOnClose
+          content={
+            <div>
+              <p>Static content</p>
+              <RevealClose>Close static</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open static</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open static' }))
+
+      advanceTimers(1200)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close static' }))
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(getScrollY()).toBe(150)
+      expect(window.scrollTo).not.toHaveBeenCalled()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('opens from keyboard activation on delegated non-button triggers', async () => {
@@ -491,6 +749,53 @@ describe('RevealPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Open reduced' }))
 
     expect(screen.getByText('Reduced motion content')).toBeInTheDocument()
+  })
+
+  it('restores scroll without intermediate animated values when reduced motion is preferred', () => {
+    jest.useFakeTimers()
+    setReducedMotionPreference(true)
+
+    try {
+      const { getScrollY } = installWindowScrollState(150)
+      const documentTop = 620
+      const { container } = render(
+        <RevealPanel
+          scrollOnOpen
+          restoreScrollOnClose
+          content={
+            <div>
+              <p>Reduced motion scroll content</p>
+              <RevealClose>Close reduced scroll</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open reduced scroll</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      expect(scope).not.toBeNull()
+      setElementRect(scope as Element, () => documentTop - getScrollY())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open reduced scroll' }))
+
+      advanceTimers(1200)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close reduced scroll' }))
+
+      advanceTimers(500)
+      advanceTimers(800)
+
+      expect(getScrollY()).toBe(150)
+      expect(getScrollToTopCalls().every((top) => top === documentTop || top === 150)).toBe(true)
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('exports only the supported public package surface', () => {

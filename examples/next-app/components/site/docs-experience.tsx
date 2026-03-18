@@ -19,6 +19,7 @@ export function AccountRevealCard() {
     <RevealPanel
       keepMounted
       magicMotion
+      restoreScrollOnClose
       scrollOnOpen
       content={({ phase }) => (
         <div className="border-t border-slate-200 px-5 py-4">
@@ -326,13 +327,19 @@ const motionPropRows: DocsTableRow[] = [
     type: '`boolean`',
   },
   {
+    details:
+      'Restores the primary scroll target captured during open after the panel settles closed.',
+    prop: '`restoreScrollOnClose`',
+    type: '`boolean`',
+  },
+  {
     details: 'Element or resolver used as the primary scroll target.',
     prop: '`scrollContainer`',
     type: '`HTMLElement | null | () => HTMLElement | null`',
   },
   {
     details:
-      'Optional outer containers to align or ensure-visible after the primary scroll container settles.',
+      'Optional outer containers to align or ensure-visible after the primary scroll container settles on open.',
     prop: '`scrollCascade`',
     type: '`Array<{ container; offset?; mode?; padding? }>`',
   },

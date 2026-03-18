@@ -165,8 +165,9 @@ function StatusLine({ phase }: { phase: string }) {
 | Prop | Type | What it does |
 | --- | --- | --- |
 | `scrollOnOpen` | `boolean` | Scrolls the panel into view when it opens |
+| `restoreScrollOnClose` | `boolean` | Restores the primary scroll target captured during open after the panel finishes closing |
 | `scrollContainer` | <code>HTMLElement &#124; null &#124; (() =&gt; HTMLElement &#124; null)</code> | Primary scroll target |
-| `scrollCascade` | `Array<{ container; offset?; mode?; padding? }>` | Optional outer container alignment steps |
+| `scrollCascade` | `Array<{ container; offset?; mode?; padding? }>` | Optional outer container alignment steps during open-time scroll alignment |
 | `scrollOffset` | `number` | Top offset used during automatic scroll alignment |
 | `scrollDurationMs` | `number` | Scroll animation timing |
 | `magicMotion` | `boolean` | Enables `motion/react` layout transitions |

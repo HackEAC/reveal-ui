@@ -536,17 +536,23 @@ function MotionItem({ children, className }: { children: React.ReactNode; classN
   )
 }
 
-function ScrollOnRevealAnchor({ offset, phase }: { offset: number; phase: RevealPhase }) {
+function ScrollOnRevealAnchor({
+  offset,
+  phase,
+  restoreOnClose = false,
+}: {
+  offset: number
+  phase: RevealPhase
+  restoreOnClose?: boolean
+}) {
   const anchorRef = React.useRef<HTMLDivElement | null>(null)
   const hasScrolledRef = React.useRef(false)
+  const restoreScrollTopRef = React.useRef<number | null>(null)
+  const didAutoScrollRef = React.useRef(false)
+  const restoreStartedRef = React.useRef(false)
   const prefersReducedMotion = usePrefersReducedMotion()
 
   React.useEffect(() => {
-    if (phase === 'closed' || phase === 'closing') {
-      hasScrolledRef.current = false
-      return
-    }
-
     if (phase !== 'opening' || hasScrolledRef.current) {
       return
     }
@@ -556,6 +562,12 @@ function ScrollOnRevealAnchor({ offset, phase }: { offset: number; phase: Reveal
       return
     }
 
+    if (restoreOnClose) {
+      restoreScrollTopRef.current = window.scrollY
+      didAutoScrollRef.current = false
+      restoreStartedRef.current = false
+    }
+
     hasScrolledRef.current = true
 
     let firstFrame = 0
@@ -563,10 +575,15 @@ function ScrollOnRevealAnchor({ offset, phase }: { offset: number; phase: Reveal
 
     const scrollToAnchor = () => {
       const top = window.scrollY + anchor.getBoundingClientRect().top - offset
+      const nextTop = Math.max(0, top)
+
+      if (restoreOnClose && Math.abs(window.scrollY - nextTop) > 2) {
+        didAutoScrollRef.current = true
+      }
 
       window.scrollTo({
         behavior: prefersReducedMotion ? 'auto' : 'smooth',
-        top: Math.max(0, top),
+        top: nextTop,
       })
     }
 
@@ -578,7 +595,82 @@ function ScrollOnRevealAnchor({ offset, phase }: { offset: number; phase: Reveal
       window.cancelAnimationFrame(firstFrame)
       window.cancelAnimationFrame(secondFrame)
     }
-  }, [offset, phase, prefersReducedMotion])
+  }, [offset, phase, prefersReducedMotion, restoreOnClose])
+
+  React.useEffect(() => {
+    if (phase === 'opening' || phase === 'open') {
+      restoreStartedRef.current = false
+      return
+    }
+
+    if (phase !== 'closing' && phase !== 'closed') return
+    if (restoreStartedRef.current) return
+
+    hasScrolledRef.current = false
+
+    const restoreTop = restoreScrollTopRef.current
+    restoreStartedRef.current = true
+    restoreScrollTopRef.current = null
+
+    if (!restoreOnClose || restoreTop === null || !didAutoScrollRef.current) {
+      didAutoScrollRef.current = false
+      return
+    }
+
+    didAutoScrollRef.current = false
+
+    let cancelled = false
+    let frame = 0
+    let settleTimer: ReturnType<typeof setTimeout> | null = null
+
+    const settleRestore = () => {
+      const startedAt = performance.now()
+      let stableFrames = 0
+
+      const tick = () => {
+        if (cancelled) return
+
+        window.scrollTo({ left: 0, top: restoreTop })
+        if (Math.abs(window.scrollY - restoreTop) <= 2) {
+          stableFrames += 1
+        } else {
+          stableFrames = 0
+        }
+
+        if (stableFrames >= 2) return
+        if (performance.now() - startedAt >= 700) return
+        frame = window.requestAnimationFrame(tick)
+      }
+
+      frame = window.requestAnimationFrame(tick)
+    }
+
+    const restore = () => {
+      if (cancelled) return
+
+      window.scrollTo({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        left: 0,
+        top: restoreTop,
+      })
+
+      settleTimer = setTimeout(
+        () => {
+          if (cancelled) return
+          settleRestore()
+        },
+        prefersReducedMotion ? 0 : 520,
+      )
+    }
+
+    frame = window.requestAnimationFrame(restore)
+
+    return () => {
+      cancelled = true
+      if (settleTimer) clearTimeout(settleTimer)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [phase, prefersReducedMotion, restoreOnClose])
 
   return <div aria-hidden="true" className="h-px w-full" ref={anchorRef} />
 }
@@ -950,11 +1042,13 @@ function ModalDetourDemo() {
 
 function PropertyRevealCard({
   onSelect,
+  onSelectComplete,
   property,
   selectedPropertyId,
   scrollContainer,
 }: {
   onSelect: (propertyId: string) => void
+  onSelectComplete?: () => void
   property: Property
   selectedPropertyId: string
   scrollContainer: RevealScrollContainer
@@ -1008,7 +1102,8 @@ function PropertyRevealCard({
                 <Button
                   onClick={() => {
                     onSelect(property.id)
-                    close({ propagate: true })
+                    close({ restoreFocus: false })
+                    onSelectComplete?.()
                   }}
                 >
                   Select {property.label}
@@ -1025,6 +1120,7 @@ function PropertyRevealCard({
       magicMotion
       onOpenChange={setIsOpen}
       ref={panelRef}
+      restoreScrollOnClose
       scrollContainer={scrollContainer}
       scrollOffset={chooserViewportScrollOffset}
       scrollOnOpen
@@ -1244,7 +1340,7 @@ function RevealSolutionDemo({
 
       <RevealPanel
         className="overflow-hidden rounded-md border border-border/50 bg-card"
-        content={({ phase }) => (
+        content={({ close, phase }) => (
           <MotionStage className="bg-card px-4 pb-4 pt-2 md:px-5" depth="inner" phase={phase}>
             <div className="space-y-4">
               <MotionItem>
@@ -1274,6 +1370,7 @@ function RevealSolutionDemo({
                         <PropertyRevealCard
                           key={property.id}
                           onSelect={setSelectedPropertyId}
+                          onSelectComplete={close}
                           property={property}
                           selectedPropertyId={selectedPropertyId}
                           scrollContainer={() => chooserViewportRef.current}
@@ -1289,6 +1386,7 @@ function RevealSolutionDemo({
         keepMounted
         magicMotion
         regionLabel="Inline property chooser"
+        restoreScrollOnClose
         scrollOffset={stickyHeaderScrollOffset}
         scrollOnOpen
       >
@@ -1484,7 +1582,7 @@ function HeroRevealExperience() {
       content={({ close, phase }) => (
         <MotionStage className="bg-card/95 px-4 pb-5 pt-2 md:px-6" depth="outer" phase={phase}>
           <div className="space-y-5">
-            <ScrollOnRevealAnchor offset={stickyHeaderScrollOffset} phase={phase} />
+            <ScrollOnRevealAnchor offset={stickyHeaderScrollOffset} phase={phase} restoreOnClose />
             <motion.div
               animate={{ opacity: 1, y: 0 }}
               initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
@@ -1502,7 +1600,6 @@ function HeroRevealExperience() {
                   onCelebrate={() => setCelebrated(true)}
                   onClose={() => {
                     setLabOpen(false)
-                    close()
                   }}
                 />
               ) : (
