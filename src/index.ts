@@ -8,7 +8,7 @@ export type {
   RevealPhase,
   RevealRenderProps,
   RevealTriggerProps,
-} from './reveal-panel'
+} from './reveal-panel.js'
 export {
   RevealClose,
   RevealGroup,
@@ -16,4 +16,4 @@ export {
   RevealSplitter,
   RevealTrigger,
   useRevealPanelState,
-} from './reveal-panel'
+} from './reveal-panel.js'
