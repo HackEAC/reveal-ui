@@ -1,6 +1,9 @@
 name: Publish
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -13,6 +16,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  cancel-in-progress: false
+  group: npm-publish-${{ github.ref }}
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,10 +40,76 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve publish metadata
+        id: metadata
+        env:
+          INPUT_DIST_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          package_name=$(node -p "require('./package.json').name")
+          package_version=$(node -p "require('./package.json').version")
+          dist_tag="${INPUT_DIST_TAG:-latest}"
+          expected_tag="v${package_version}"
+
+          echo "package_name=${package_name}" >> "$GITHUB_OUTPUT"
+          echo "package_version=${package_version}" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=${dist_tag}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF_NAME}" != "main" ]]; then
+            echo "::error title=Publish must run from main::Manual publish runs must target the main branch."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+              echo "::error title=Tag/version mismatch::Expected ${expected_tag} from package.json but received ${GITHUB_REF_NAME}."
+              exit 1
+            fi
+
+            if ! git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"; then
+              echo "::error title=Tag must reference main::The published tag must point to a commit already reachable from origin/main."
+              exit 1
+            fi
+          fi
+
+          if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Publish skipped"
+              echo
+              echo "- Package: \`${package_name}\`"
+              echo "- Version: \`${package_version}\`"
+              echo "- Reason: already published on npm"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Validate package
+        if: steps.metadata.outputs.should_publish == 'true'
         run: npm run ci
 
+      - name: Skip already published version
+        if: steps.metadata.outputs.should_publish != 'true'
+        run: |
+          echo "Package ${PACKAGE_NAME}@${PACKAGE_VERSION} is already published; skipping npm publish."
+        env:
+          PACKAGE_NAME: ${{ steps.metadata.outputs.package_name }}
+          PACKAGE_VERSION: ${{ steps.metadata.outputs.package_version }}
+
+      - name: Verify npm credentials
+        if: steps.metadata.outputs.should_publish == 'true'
+        env:
+          HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+        run: |
+          if [[ "${HAS_NPM_TOKEN}" != "true" ]]; then
+            echo "::error title=Missing NPM_TOKEN::Set the NPM_TOKEN repository secret before running the publish workflow."
+            exit 1
+          fi
+
       - name: Publish to npm
+        if: steps.metadata.outputs.should_publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance --tag "${{ inputs.tag }}"
+        run: npm publish --access public --provenance --tag "${{ steps.metadata.outputs.dist_tag }}"
