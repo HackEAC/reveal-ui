@@ -62,7 +62,7 @@
     "smoke": "node ./scripts/smoke-consumer.mjs",
     "example:install": "npm install --prefix ./examples/next-app",
     "example:dev": "npm run dev --prefix ./examples/next-app",
-    "ci": "npm run lint && npm run test && npm run typecheck && npm run build && npm run pack:dry-run",
+    "ci": "npm run lint && npm run test && npm run typecheck && npm run build && npm run pack:dry-run && npm run smoke",
     "docs:build": "npm run build --prefix ./examples/next-app",
     "docs:install": "npm ci --prefix ./examples/next-app",
     "docs:preview": "npm run dev --prefix ./examples/next-app",
