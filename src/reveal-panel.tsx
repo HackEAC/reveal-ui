@@ -56,6 +56,7 @@ export interface RevealPanelProps {
   closeSiblings?: boolean
   containTriggers?: boolean
   scrollOnOpen?: boolean
+  restoreScrollOnClose?: boolean
   scrollContainer?: HTMLElement | null | (() => HTMLElement | null)
   scrollCascade?: Array<{
     container: HTMLElement | null | (() => HTMLElement | null)
@@ -73,6 +74,12 @@ export interface RevealPanelProps {
   restoreFocusOnClose?: boolean
   regionLabel?: string
 }
+
+type ResolvedPrimaryScrollTarget = { kind: 'window' } | { kind: 'element'; element: HTMLElement }
+
+type ScrollRestoreSnapshot =
+  | { kind: 'window'; top: number; didAutoScroll: boolean }
+  | { kind: 'element'; element: HTMLElement; top: number; didAutoScroll: boolean }
 
 type RevealGroupContextValue = {
   register: (id: string, close: (arg?: CloseOptions) => void) => () => void
@@ -350,6 +357,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     closeSiblings,
     containTriggers = true,
     scrollOnOpen = false,
+    restoreScrollOnClose = false,
     scrollContainer,
     scrollCascade,
     scrollOffset = 0,
@@ -381,6 +389,8 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const lastTriggerRef = React.useRef<HTMLElement | null>(null)
   const phaseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousOpenRef = React.useRef(isOpen)
+  const restoreScrollSnapshotRef = React.useRef<ScrollRestoreSnapshot | null>(null)
+  const restoreScrollStartedRef = React.useRef(false)
   const [extraScrollSpace, setExtraScrollSpace] = React.useState(0)
   const extraScrollSpaceRef = React.useRef(0)
   const containerPaddingRef = React.useRef<{ el: HTMLElement; paddingBottom: string } | null>(null)
@@ -705,40 +715,40 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     return (document.scrollingElement as HTMLElement | null) ?? null
   }, [])
 
-  React.useEffect(() => {
-    if (!scrollOnOpen || !isOpen) return
-    if (hasAutoScrolledThisOpenRef.current) return
-    hasAutoScrolledThisOpenRef.current = true
+  const getMaxScroll = React.useCallback(
+    (ancestor: HTMLElement) => Math.max(0, ancestor.scrollHeight - ancestor.clientHeight),
+    [],
+  )
 
-    const container = containerRef.current
-    if (!container) return
+  const isWindowScrollElement = React.useCallback(
+    (element: HTMLElement | null | undefined) =>
+      !element ||
+      element === document.body ||
+      element === document.documentElement ||
+      element === document.scrollingElement,
+    [],
+  )
 
-    let cancelled = false
-    let settleTimer: ReturnType<typeof setTimeout> | null = null
+  const isScrollableElement = React.useCallback((element: HTMLElement) => {
+    const style = window.getComputedStyle(element)
+    const overflowY = style.overflowY
+    const overflow = style.overflow
+    return (
+      overflowY === 'auto' || overflowY === 'scroll' || overflow === 'auto' || overflow === 'scroll'
+    )
+  }, [])
 
-    const getMaxScroll = (ancestor: HTMLElement) =>
-      Math.max(0, ancestor.scrollHeight - ancestor.clientHeight)
+  const resolveContainer = React.useCallback(
+    (value: HTMLElement | null | (() => HTMLElement | null) | undefined) => {
+      if (!value) return null
+      return typeof value === 'function' ? value() : value
+    },
+    [],
+  )
 
-    const isScrollableElement = (element: HTMLElement) => {
-      const style = window.getComputedStyle(element)
-      const overflowY = style.overflowY
-      const overflow = style.overflow
-      return (
-        overflowY === 'auto' ||
-        overflowY === 'scroll' ||
-        overflow === 'auto' ||
-        overflow === 'scroll'
-      )
-    }
-
-    const getTargetTopWithinContainer = (target: HTMLElement, ancestor: HTMLElement) => {
-      const targetRect = target.getBoundingClientRect()
-      const ancestorRect = ancestor.getBoundingClientRect()
-      return ancestor.scrollTop + (targetRect.top - ancestorRect.top) - scrollOffset
-    }
-
-    const resolveBestScrollContainer = () => {
-      const preferred = typeof scrollContainer === 'function' ? scrollContainer() : scrollContainer
+  const resolveBestScrollContainer = React.useCallback(
+    (container: HTMLElement) => {
+      const preferred = resolveContainer(scrollContainer)
       if (preferred) return preferred
 
       let current: HTMLElement | null = container.parentElement
@@ -748,16 +758,40 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       }
 
       return resolveScrollableAncestor(container)
-    }
+    },
+    [isScrollableElement, resolveContainer, resolveScrollableAncestor, scrollContainer],
+  )
 
-    const resolveContainer = (
-      value: HTMLElement | null | (() => HTMLElement | null) | undefined,
-    ) => {
-      if (!value) return null
-      return typeof value === 'function' ? value() : value
-    }
+  const resolvePrimaryScrollTarget = React.useCallback(
+    (container: HTMLDivElement | null): ResolvedPrimaryScrollTarget | null => {
+      if (!container) return null
 
-    const animateScroll = (from: number, to: number, setValue: (value: number) => void) => {
+      const resolvedScrollContainer = resolveBestScrollContainer(container)
+      if (!resolvedScrollContainer || isWindowScrollElement(resolvedScrollContainer)) {
+        return typeof window === 'undefined' ? null : { kind: 'window' }
+      }
+
+      return { kind: 'element', element: resolvedScrollContainer }
+    },
+    [isWindowScrollElement, resolveBestScrollContainer],
+  )
+
+  const getTargetTopWithinContainer = React.useCallback(
+    (target: HTMLElement, ancestor: HTMLElement) => {
+      const targetRect = target.getBoundingClientRect()
+      const ancestorRect = ancestor.getBoundingClientRect()
+      return ancestor.scrollTop + (targetRect.top - ancestorRect.top) - scrollOffset
+    },
+    [scrollOffset],
+  )
+
+  const getCurrentScrollTop = React.useCallback((target: ResolvedPrimaryScrollTarget) => {
+    if (target.kind === 'element') return target.element.scrollTop
+    return typeof window === 'undefined' ? 0 : window.scrollY
+  }, [])
+
+  const animateScroll = React.useCallback(
+    (from: number, to: number, setValue: (value: number) => void, shouldCancel?: () => boolean) => {
       if (prefersReducedMotion || scrollDurationMs <= 0) {
         setValue(to)
         return
@@ -772,7 +806,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       const easeOutQuad = (progress: number) => 1 - (1 - progress) * (1 - progress)
 
       const tick = (now: number) => {
-        if (cancelled) return
+        if (shouldCancel?.()) return
 
         const elapsed = now - start
         if (elapsed <= phaseOne) {
@@ -790,7 +824,101 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       }
 
       requestAnimationFrame(tick)
-    }
+    },
+    [prefersReducedMotion, scrollDurationMs, scrollOvershootPx],
+  )
+
+  const scrollPrimaryTargetTo = React.useCallback(
+    (
+      target: ResolvedPrimaryScrollTarget,
+      nextTop: number,
+      animated: boolean,
+      shouldCancel?: () => boolean,
+    ) => {
+      const from = getCurrentScrollTop(target)
+      const to =
+        target.kind === 'element'
+          ? Math.max(0, Math.min(nextTop, getMaxScroll(target.element)))
+          : Math.max(0, nextTop)
+
+      const setValue = (value: number) => {
+        if (target.kind === 'element') {
+          target.element.scrollTop = value
+          return
+        }
+        window.scrollTo({ top: value, left: 0 })
+      }
+
+      if (animated) {
+        animateScroll(from, to, setValue, shouldCancel)
+      } else {
+        setValue(to)
+      }
+
+      return { from, to }
+    },
+    [animateScroll, getCurrentScrollTop, getMaxScroll],
+  )
+
+  const markDidAutoScroll = React.useCallback(
+    (target: ResolvedPrimaryScrollTarget, from: number, to: number) => {
+      if (!restoreScrollOnClose || Math.abs(to - from) <= 0.5) return
+
+      const snapshot = restoreScrollSnapshotRef.current
+      if (!snapshot || snapshot.kind !== target.kind) return
+      if (
+        snapshot.kind === 'element' &&
+        target.kind === 'element' &&
+        snapshot.element !== target.element
+      ) {
+        return
+      }
+
+      snapshot.didAutoScroll = true
+    },
+    [restoreScrollOnClose],
+  )
+
+  const previousOpenForScrollRestoreRef = React.useRef<boolean | null>(null)
+
+  React.useLayoutEffect(() => {
+    const wasOpen = previousOpenForScrollRestoreRef.current
+    previousOpenForScrollRestoreRef.current = isOpen
+
+    if (!isOpen || wasOpen === true) return
+
+    restoreScrollSnapshotRef.current = null
+    restoreScrollStartedRef.current = false
+    if (!scrollOnOpen || !restoreScrollOnClose) return
+
+    const target = resolvePrimaryScrollTarget(containerRef.current)
+    if (!target) return
+
+    restoreScrollSnapshotRef.current =
+      target.kind === 'element'
+        ? {
+            kind: 'element',
+            element: target.element,
+            top: target.element.scrollTop,
+            didAutoScroll: false,
+          }
+        : {
+            kind: 'window',
+            top: getCurrentScrollTop(target),
+            didAutoScroll: false,
+          }
+  }, [getCurrentScrollTop, isOpen, resolvePrimaryScrollTarget, restoreScrollOnClose, scrollOnOpen])
+
+  React.useEffect(() => {
+    if (!scrollOnOpen || !isOpen) return
+    if (hasAutoScrolledThisOpenRef.current) return
+    hasAutoScrolledThisOpenRef.current = true
+
+    const container = containerRef.current
+    if (!container) return
+
+    let cancelled = false
+    let settleTimer: ReturnType<typeof setTimeout> | null = null
 
     const applyCascade = (
       primaryContainer: HTMLElement | null,
@@ -825,9 +953,14 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
             element.scrollTop = clamped
           } else {
             const from = element.scrollTop
-            animateScroll(from, clamped, (value) => {
-              element.scrollTop = value
-            })
+            animateScroll(
+              from,
+              clamped,
+              (value) => {
+                element.scrollTop = value
+              },
+              () => cancelled,
+            )
           }
           maxDelta = Math.max(maxDelta, Math.abs(deltaToTop))
           continue
@@ -855,9 +988,14 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
             element.scrollTop = clamped
           } else {
             const from = element.scrollTop
-            animateScroll(from, clamped, (value) => {
-              element.scrollTop = value
-            })
+            animateScroll(
+              from,
+              clamped,
+              (value) => {
+                element.scrollTop = value
+              },
+              () => cancelled,
+            )
           }
         }
       }
@@ -871,23 +1009,23 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     ) => {
       if (cancelled) return null
 
-      const resolvedScrollContainer = resolveBestScrollContainer()
+      const primaryTarget = resolvePrimaryScrollTarget(container)
+      if (!primaryTarget) return null
+
       const includeCascade = options?.includeCascade ?? true
       const cascadeDelta = includeCascade
-        ? applyCascade(resolvedScrollContainer, options?.cascadeImmediate ?? true, {
-            strict: options?.strictCascade,
-          })
+        ? applyCascade(
+            primaryTarget.kind === 'element' ? primaryTarget.element : null,
+            options?.cascadeImmediate ?? true,
+            {
+              strict: options?.strictCascade,
+            },
+          )
         : 0
 
-      const isWindowScrollTarget =
-        !resolvedScrollContainer ||
-        resolvedScrollContainer === document.body ||
-        resolvedScrollContainer === document.documentElement ||
-        resolvedScrollContainer === document.scrollingElement
-
-      if (!isWindowScrollTarget && resolvedScrollContainer) {
-        const targetTop = getTargetTopWithinContainer(container, resolvedScrollContainer)
-        const maxScroll = getMaxScroll(resolvedScrollContainer)
+      if (primaryTarget.kind === 'element') {
+        const targetTop = getTargetTopWithinContainer(container, primaryTarget.element)
+        const maxScroll = getMaxScroll(primaryTarget.element)
         const neededExtra = targetTop > maxScroll ? targetTop - maxScroll : 0
 
         if (neededExtra > 0) {
@@ -900,57 +1038,44 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
           } else if (scrollSpacerTarget === 'container') {
             if (
               !containerPaddingRef.current ||
-              containerPaddingRef.current.el !== resolvedScrollContainer
+              containerPaddingRef.current.el !== primaryTarget.element
             ) {
               containerPaddingRef.current = {
-                el: resolvedScrollContainer,
-                paddingBottom: resolvedScrollContainer.style.paddingBottom || '',
+                el: primaryTarget.element,
+                paddingBottom: primaryTarget.element.style.paddingBottom || '',
               }
             }
             const basePadding = parseFloat(
-              window.getComputedStyle(resolvedScrollContainer).paddingBottom || '0',
+              window.getComputedStyle(primaryTarget.element).paddingBottom || '0',
             )
-            resolvedScrollContainer.style.paddingBottom = `${basePadding + neededExtra}px`
+            primaryTarget.element.style.paddingBottom = `${basePadding + neededExtra}px`
           }
         } else if (
           scrollSpacerTarget === 'container' &&
-          containerPaddingRef.current?.el === resolvedScrollContainer
+          containerPaddingRef.current?.el === primaryTarget.element
         ) {
-          resolvedScrollContainer.style.paddingBottom = containerPaddingRef.current.paddingBottom
+          primaryTarget.element.style.paddingBottom = containerPaddingRef.current.paddingBottom
         }
 
-        const from = resolvedScrollContainer.scrollTop
-        const finalTarget = Math.max(0, Math.min(targetTop, getMaxScroll(resolvedScrollContainer)))
-        if (animated) {
-          animateScroll(from, finalTarget, (value) => {
-            resolvedScrollContainer.scrollTop = value
-          })
-        } else {
-          resolvedScrollContainer.scrollTop = finalTarget
-        }
+        const { from, to } = scrollPrimaryTargetTo(
+          primaryTarget,
+          targetTop,
+          animated,
+          () => cancelled,
+        )
+        markDidAutoScroll(primaryTarget, from, to)
 
-        const containerRect = resolvedScrollContainer.getBoundingClientRect()
+        const containerRect = primaryTarget.element.getBoundingClientRect()
         const delta = container.getBoundingClientRect().top - containerRect.top - scrollOffset
         return { pending: false as const, delta: Math.max(Math.abs(delta), cascadeDelta) }
       }
 
-      if (typeof window !== 'undefined') {
-        const from = window.scrollY
-        const rect = container.getBoundingClientRect()
-        const target = from + rect.top - scrollOffset
-        if (animated) {
-          animateScroll(from, target, (value) => {
-            window.scrollTo({ top: value, left: 0 })
-          })
-        } else {
-          window.scrollTo({ top: target, left: 0 })
-        }
-        const delta = container.getBoundingClientRect().top - scrollOffset
-        return { pending: false as const, delta: Math.max(Math.abs(delta), cascadeDelta) }
-      }
-
-      container.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return { pending: false as const, delta: cascadeDelta }
+      const target =
+        getCurrentScrollTop(primaryTarget) + container.getBoundingClientRect().top - scrollOffset
+      const { from, to } = scrollPrimaryTargetTo(primaryTarget, target, animated, () => cancelled)
+      markDidAutoScroll(primaryTarget, from, to)
+      const delta = container.getBoundingClientRect().top - scrollOffset
+      return { pending: false as const, delta: Math.max(Math.abs(delta), cascadeDelta) }
     }
 
     const settleAlignment = () => {
@@ -1049,14 +1174,19 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   }, [
     isOpen,
     prefersReducedMotion,
-    resolveScrollableAncestor,
+    resolvePrimaryScrollTarget,
     scrollCascade,
-    scrollContainer,
     scrollDurationMs,
     scrollOffset,
     scrollOnOpen,
-    scrollOvershootPx,
     scrollSpacerTarget,
+    scrollPrimaryTargetTo,
+    getCurrentScrollTop,
+    getMaxScroll,
+    getTargetTopWithinContainer,
+    resolveContainer,
+    markDidAutoScroll,
+    animateScroll,
   ])
 
   React.useEffect(() => {
@@ -1081,6 +1211,90 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       containerPaddingRef.current = null
     }
   }, [isOpen])
+
+  React.useEffect(() => {
+    if (isOpen || phase === 'opening' || phase === 'open') {
+      restoreScrollStartedRef.current = false
+      return
+    }
+
+    if (phase !== 'closing' && phase !== 'closed') return
+    if (restoreScrollStartedRef.current) return
+
+    const snapshot = restoreScrollSnapshotRef.current
+    restoreScrollStartedRef.current = true
+    restoreScrollSnapshotRef.current = null
+
+    if (!restoreScrollOnClose || !snapshot?.didAutoScroll) return
+    if (snapshot.kind === 'element' && !snapshot.element.isConnected) return
+
+    let cancelled = false
+    let frame = 0
+    let settleTimer: ReturnType<typeof setTimeout> | null = null
+
+    const restore = () => {
+      if (cancelled) return
+
+      const target: ResolvedPrimaryScrollTarget =
+        snapshot.kind === 'element'
+          ? { kind: 'element', element: snapshot.element }
+          : { kind: 'window' }
+
+      const settleRestore = () => {
+        const startedAt = performance.now()
+        let stableFrames = 0
+
+        const tick = () => {
+          if (cancelled) return
+
+          scrollPrimaryTargetTo(target, snapshot.top, false, () => cancelled)
+          if (Math.abs(getCurrentScrollTop(target) - snapshot.top) <= 2) {
+            stableFrames += 1
+          } else {
+            stableFrames = 0
+          }
+
+          if (stableFrames >= 2) return
+          if (performance.now() - startedAt >= 700) return
+          frame = window.requestAnimationFrame(tick)
+        }
+
+        frame = window.requestAnimationFrame(tick)
+      }
+
+      scrollPrimaryTargetTo(target, snapshot.top, !prefersReducedMotion, () => cancelled)
+      settleTimer = setTimeout(
+        () => {
+          if (cancelled) return
+          settleRestore()
+        },
+        prefersReducedMotion || scrollDurationMs <= 0 ? 0 : Math.min(scrollDurationMs + 64, 520),
+      )
+    }
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      frame = window.requestAnimationFrame(restore)
+      return () => {
+        cancelled = true
+        if (settleTimer) clearTimeout(settleTimer)
+        window.cancelAnimationFrame(frame)
+      }
+    }
+
+    restore()
+    return () => {
+      cancelled = true
+      if (settleTimer) clearTimeout(settleTimer)
+    }
+  }, [
+    getCurrentScrollTop,
+    isOpen,
+    phase,
+    prefersReducedMotion,
+    restoreScrollOnClose,
+    scrollDurationMs,
+    scrollPrimaryTargetTo,
+  ])
 
   const shellEase = [0.22, 1, 0.36, 1] as [number, number, number, number]
   const contentEase = [0.4, 0, 0.2, 1] as [number, number, number, number]
