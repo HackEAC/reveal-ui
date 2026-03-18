@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import type { RevealPhase } from 'reveal-ui'
+
+type RevealPhaseLike = 'closed' | 'opening' | 'open' | 'closing'
 
 function usePrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false)
@@ -34,7 +35,7 @@ export function ScrollOnRevealAnchor({
   restoreOnClose = false,
 }: {
   offset: number
-  phase: RevealPhase
+  phase: RevealPhaseLike
   restoreOnClose?: boolean
 }) {
   const anchorRef = React.useRef<HTMLDivElement | null>(null)
