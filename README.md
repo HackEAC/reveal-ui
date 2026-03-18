@@ -19,17 +19,19 @@
       src="https://github.com/HackEAC/reveal-ui/actions/workflows/ci.yml/badge.svg?branch=main"
     />
   </a>
-  <a href="https://codecov.io/gh/HackEAC/reveal-ui">
-    <img
-      alt="Coverage"
-      src="https://codecov.io/gh/HackEAC/reveal-ui/branch/main/graph/badge.svg"
-    />
-  </a>
 </p>
 
 `reveal-ui` is a React library for cases where a trigger-plus-panel pattern is too shallow. It keeps the top summary and bottom context mounted, then reveals richer content between them so users can inspect, compare, edit, or confirm without losing the surrounding workflow.
 
 It is a good fit for inline editors, stacked cards, pricing or plan comparisons, nested edit flows, and chooser-style UIs where a short label is not enough to make the decision.
+
+<p align="center">
+  <img
+    alt="Animated reveal-ui demo showing persistent-summary disclosure in action"
+    src="./assets/reveal-ui-v0-0-2.gif"
+    width="960"
+  />
+</p>
 
 ## Install
 
