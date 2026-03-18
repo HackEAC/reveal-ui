@@ -31,6 +31,14 @@
 
 It is a good fit for inline editors, stacked cards, pricing or plan comparisons, nested edit flows, and chooser-style UIs where a short label is not enough to make the decision.
 
+<p align="center">
+  <img
+    alt="Animated reveal-ui demo showing persistent-summary disclosure in action"
+    src="./assets/reveal-ui-v0-0-2.gif"
+    width="960"
+  />
+</p>
+
 ## Install
 
 ```bash
