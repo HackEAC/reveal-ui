@@ -3,6 +3,14 @@ module.exports = {
   clearMocks: true,
   collectCoverageFrom: ['<rootDir>/src/**/*.{ts,tsx}'],
   coverageReporters: ['text', 'lcov', 'json-summary'],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 84,
+      lines: 78,
+      statements: 74,
+    },
+  },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/examples/next-app/$1',

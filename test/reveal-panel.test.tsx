@@ -26,6 +26,26 @@ function setElementRect(element: Element, getTop: () => number, height = 100) {
   })
 }
 
+function setElementScrollMetrics(
+  element: HTMLElement,
+  {
+    clientHeight,
+    scrollHeight,
+  }: {
+    clientHeight: number
+    scrollHeight: number | (() => number)
+  },
+) {
+  Object.defineProperty(element, 'clientHeight', {
+    configurable: true,
+    value: clientHeight,
+  })
+  Object.defineProperty(element, 'scrollHeight', {
+    configurable: true,
+    get: typeof scrollHeight === 'function' ? scrollHeight : () => scrollHeight,
+  })
+}
+
 function installWindowScrollState(initialTop: number) {
   let scrollY = initialTop
 
@@ -136,6 +156,48 @@ describe('RevealPanel', () => {
     expect(screen.getByText('Controlled content')).toBeInTheDocument()
   })
 
+  it('supports custom delegated trigger and restore attributes', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <RevealPanel
+        triggerAttr="data-open-custom"
+        restoreAttr="data-close-custom"
+        content={
+          <div>
+            <p>Custom delegated content</p>
+            <div data-close-custom>Close custom</div>
+          </div>
+        }
+      >
+        <RevealPanel.Top>
+          <div data-open-custom>Open custom</div>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Open custom' })
+
+    expect(trigger).toHaveAttribute('aria-controls')
+
+    await user.click(trigger)
+
+    expect(screen.getByText('Custom delegated content')).toBeInTheDocument()
+
+    const restore = screen.getByRole('button', { name: 'Close custom' })
+
+    expect(restore).toHaveAttribute('aria-controls', trigger.getAttribute('aria-controls'))
+
+    await user.click(restore)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Custom delegated content')).not.toBeInTheDocument()
+    })
+  })
+
   it('closes sibling revealers when grouped', async () => {
     const user = userEvent.setup()
 
@@ -206,6 +268,40 @@ describe('RevealPanel', () => {
       expect(screen.queryByText('Focus content')).not.toBeInTheDocument()
       expect(trigger).toHaveFocus()
     })
+  })
+
+  it('does not restore focus when restoreFocusOnClose is disabled', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <RevealPanel
+        restoreFocusOnClose={false}
+        content={
+          <div>
+            <p>No focus restore content</p>
+            <RevealClose>Close without focus restore</RevealClose>
+          </div>
+        }
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open without focus restore</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    const trigger = screen.getByRole('button', { name: 'Open without focus restore' })
+
+    await user.click(trigger)
+    await user.click(screen.getByRole('button', { name: 'Close without focus restore' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('No focus restore content')).not.toBeInTheDocument()
+    })
+
+    expect(trigger).not.toHaveFocus()
   })
 
   it('restores the previous window scroll position after close when enabled', () => {
@@ -481,6 +577,105 @@ describe('RevealPanel', () => {
       expect(getScrollY()).toBe(150)
       expect(window.scrollTo).not.toHaveBeenCalled()
     } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('auto-splits unmarked children into top and bottom regions when enabled', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <RevealPanel autoSplit content={<p>Auto split content</p>}>
+        <RevealTrigger>Open auto split</RevealTrigger>
+        <p>Top summary</p>
+        <p>Bottom details</p>
+        <p>Bottom footer</p>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open auto split' }))
+
+    const topSummary = screen.getByText('Top summary')
+    const content = screen.getByText('Auto split content')
+    const bottomDetails = screen.getByText('Bottom details')
+
+    expect(topSummary.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
+      0,
+    )
+    expect(
+      content.compareDocumentPosition(bottomDetails) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0)
+  })
+
+  it('applies cascade alignment and cleans container spacer padding after close', () => {
+    jest.useFakeTimers()
+
+    const cascadeContainer = document.createElement('div')
+    const primaryContainer = document.createElement('div')
+    cascadeContainer.scrollTop = 0
+    primaryContainer.scrollTop = 20
+    primaryContainer.style.paddingBottom = '8px'
+    setElementScrollMetrics(cascadeContainer, {
+      clientHeight: 320,
+      scrollHeight: 1200,
+    })
+    setElementScrollMetrics(primaryContainer, {
+      clientHeight: 200,
+      scrollHeight: () => 400 + parseFloat(primaryContainer.style.paddingBottom || '0'),
+    })
+    setElementRect(cascadeContainer, () => 20, 320)
+    setElementRect(primaryContainer, () => 100, 200)
+    document.body.appendChild(cascadeContainer)
+    document.body.appendChild(primaryContainer)
+
+    try {
+      const targetTopWithinPrimary = 440
+      const { container } = render(
+        <RevealPanel
+          scrollOnOpen
+          scrollContainer={primaryContainer}
+          scrollCascade={[{ container: cascadeContainer, mode: 'align-top', offset: 12 }]}
+          scrollSpacerTarget="container"
+          content={
+            <div>
+              <p>Cascade content</p>
+              <RevealClose>Close cascade</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open cascade</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>,
+      )
+
+      const scope = container.querySelector('[data-reveal-scope]')
+      expect(scope).not.toBeNull()
+      setElementRect(
+        scope as Element,
+        () => 100 + (targetTopWithinPrimary - primaryContainer.scrollTop),
+        120,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open cascade' }))
+
+      advanceTimers(1800)
+
+      expect(primaryContainer.scrollTop).toBe(targetTopWithinPrimary)
+      expect(parseFloat(primaryContainer.style.paddingBottom || '0')).toBeGreaterThan(8)
+      expect(cascadeContainer.scrollTop).toBeGreaterThan(0)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close cascade' }))
+
+      advanceTimers(50)
+
+      expect(primaryContainer.style.paddingBottom).toBe('8px')
+    } finally {
+      cascadeContainer.remove()
+      primaryContainer.remove()
       jest.useRealTimers()
     }
   })
@@ -883,5 +1078,40 @@ describe('RevealPanel', () => {
       'RevealTrigger',
       'useRevealPanelState',
     ])
+  })
+
+  it('throws when useRevealPanelState is used outside a panel', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    function Probe() {
+      useRevealPanelState()
+      return null
+    }
+
+    expect(() => render(<Probe />)).toThrow(
+      'useRevealPanelState must be used inside a RevealPanel.',
+    )
+
+    consoleError.mockRestore()
+  })
+
+  it('throws when RevealTrigger is rendered outside a panel', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    expect(() => render(<RevealTrigger>Invalid trigger</RevealTrigger>)).toThrow(
+      'RevealTrigger must be used inside a RevealPanel.',
+    )
+
+    consoleError.mockRestore()
+  })
+
+  it('throws when RevealClose is rendered outside a panel', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    expect(() => render(<RevealClose>Invalid close</RevealClose>)).toThrow(
+      'RevealClose must be used inside a RevealPanel.',
+    )
+
+    consoleError.mockRestore()
   })
 })
