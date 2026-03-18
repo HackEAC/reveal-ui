@@ -1,14 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
-import {
-  RevealClose,
-  RevealGroup,
-  RevealPanel,
-  RevealSplitter,
-  RevealTrigger,
-  useRevealPanelState,
-} from '../src'
+import * as revealUi from '../src'
+import { RevealClose, RevealGroup, RevealPanel, RevealTrigger, useRevealPanelState } from '../src'
 import { setReducedMotionPreference } from './match-media'
 
 describe('RevealPanel', () => {
@@ -16,7 +10,7 @@ describe('RevealPanel', () => {
     const user = userEvent.setup()
 
     render(
-      <RevealSplitter
+      <RevealPanel
         revealContent={
           <div>
             <p>Revealed content</p>
@@ -26,15 +20,15 @@ describe('RevealPanel', () => {
           </div>
         }
       >
-        <RevealSplitter.Top>
+        <RevealPanel.Top>
           <button type="button" data-trigger-collapse>
             Open
           </button>
-        </RevealSplitter.Top>
-        <RevealSplitter.Bottom>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
           <p>Bottom</p>
-        </RevealSplitter.Bottom>
-      </RevealSplitter>,
+        </RevealPanel.Bottom>
+      </RevealPanel>,
     )
 
     const trigger = screen.getByRole('button', { name: 'Open' })
@@ -89,27 +83,27 @@ describe('RevealPanel', () => {
 
     render(
       <RevealGroup closeSiblings>
-        <RevealSplitter content={<p>First panel</p>}>
-          <RevealSplitter.Top>
+        <RevealPanel content={<p>First panel</p>}>
+          <RevealPanel.Top>
             <button type="button" data-trigger-collapse>
               Open first
             </button>
-          </RevealSplitter.Top>
-          <RevealSplitter.Bottom>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
             <div />
-          </RevealSplitter.Bottom>
-        </RevealSplitter>
+          </RevealPanel.Bottom>
+        </RevealPanel>
 
-        <RevealSplitter content={<p>Second panel</p>}>
-          <RevealSplitter.Top>
+        <RevealPanel content={<p>Second panel</p>}>
+          <RevealPanel.Top>
             <button type="button" data-trigger-collapse>
               Open second
             </button>
-          </RevealSplitter.Top>
-          <RevealSplitter.Bottom>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
             <div />
-          </RevealSplitter.Bottom>
-        </RevealSplitter>
+          </RevealPanel.Bottom>
+        </RevealPanel>
       </RevealGroup>,
     )
 
@@ -158,14 +152,14 @@ describe('RevealPanel', () => {
 
   it('opens from keyboard activation on delegated non-button triggers', async () => {
     render(
-      <RevealSplitter content={<p>Keyboard content</p>}>
-        <RevealSplitter.Top>
+      <RevealPanel content={<p>Keyboard content</p>}>
+        <RevealPanel.Top>
           <div data-trigger-collapse>Open panel</div>
-        </RevealSplitter.Top>
-        <RevealSplitter.Bottom>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
           <div />
-        </RevealSplitter.Bottom>
-      </RevealSplitter>,
+        </RevealPanel.Bottom>
+      </RevealPanel>,
     )
 
     const trigger = await screen.findByRole('button', { name: 'Open panel' })
@@ -179,37 +173,37 @@ describe('RevealPanel', () => {
     const user = userEvent.setup()
 
     render(
-      <RevealSplitter
+      <RevealPanel
         content={() => (
           <div>
-            <RevealSplitter
+            <RevealPanel
               content={({ close }) => (
                 <button type="button" onClick={() => close({ propagate: true })}>
                   Close all
                 </button>
               )}
             >
-              <RevealSplitter.Top>
+              <RevealPanel.Top>
                 <button type="button" data-trigger-collapse>
                   Open inner
                 </button>
-              </RevealSplitter.Top>
-              <RevealSplitter.Bottom>
+              </RevealPanel.Top>
+              <RevealPanel.Bottom>
                 <div />
-              </RevealSplitter.Bottom>
-            </RevealSplitter>
+              </RevealPanel.Bottom>
+            </RevealPanel>
           </div>
         )}
       >
-        <RevealSplitter.Top>
+        <RevealPanel.Top>
           <button type="button" data-trigger-collapse>
             Open outer
           </button>
-        </RevealSplitter.Top>
-        <RevealSplitter.Bottom>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
           <div />
-        </RevealSplitter.Bottom>
-      </RevealSplitter>,
+        </RevealPanel.Bottom>
+      </RevealPanel>,
     )
 
     await user.click(screen.getByRole('button', { name: 'Open outer' }))
@@ -499,7 +493,13 @@ describe('RevealPanel', () => {
     expect(screen.getByText('Reduced motion content')).toBeInTheDocument()
   })
 
-  it('preserves RevealSplitter as the RevealPanel compatibility alias', () => {
-    expect(RevealSplitter).toBe(RevealPanel)
+  it('exports only the supported public package surface', () => {
+    expect(Object.keys(revealUi).sort()).toEqual([
+      'RevealClose',
+      'RevealGroup',
+      'RevealPanel',
+      'RevealTrigger',
+      'useRevealPanelState',
+    ])
   })
 })

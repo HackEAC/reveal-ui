@@ -1251,6 +1251,3 @@ RevealPanel.displayName = 'RevealPanel'
 
 RevealTrigger.displayName = 'RevealTrigger'
 RevealClose.displayName = 'RevealClose'
-
-/** @deprecated Use RevealPanel instead. */
-export const RevealSplitter = RevealPanel
