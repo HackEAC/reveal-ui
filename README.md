@@ -21,6 +21,14 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://hackeac.github.io/reveal-ui/">Docs</a>
+  ·
+  <a href="https://hackeac.github.io/reveal-ui/#examples">Examples</a>
+  ·
+  <a href="https://github.com/HackEAC/reveal-ui/discussions">Discussions</a>
+</p>
+
 `reveal-ui` is a React library for cases where a trigger-plus-panel pattern is too shallow. It keeps the top summary and bottom context mounted, then reveals richer content between them so users can inspect, compare, edit, or confirm without losing the surrounding workflow.
 
 It is a good fit for inline editors, stacked cards, pricing or plan comparisons, nested edit flows, and chooser-style UIs where a short label is not enough to make the decision.
@@ -53,6 +61,14 @@ npm install reveal-ui motion react react-dom
 | Users need multiple attributes before choosing or confirming | The interaction should block the app like a true modal |
 | Nested flows need close propagation without modal chains | The content should unmount immediately with no phase-aware exit |
 | Card stacks should behave like a single-open chooser | The detail is small enough for a plain tooltip or label |
+
+## Demo Patterns
+
+- Inline editor: keep the current summary visible while a richer form opens between top and bottom regions.
+- Plan comparison: compare pricing, risk, and rollout details without collapsing the decision into a single label.
+- Nested edit flow: open a deeper step only when needed and propagate close events back out when the task is complete.
+
+Try the live demos at https://hackeac.github.io/reveal-ui/#examples
 
 ## Quick Start
 
@@ -246,6 +262,7 @@ npm run docs:preview
 
 - Repository: [github.com/HackEAC/reveal-ui](https://github.com/HackEAC/reveal-ui)
 - Website: [hackeac.github.io/reveal-ui](https://hackeac.github.io/reveal-ui)
+- Discussions: [github.com/HackEAC/reveal-ui/discussions](https://github.com/HackEAC/reveal-ui/discussions)
 
 ## License
 

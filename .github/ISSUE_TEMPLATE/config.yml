@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage questions and API discussion
+    url: https://github.com/HackEAC/reveal-ui/discussions
+    about: Ask integration questions, share use cases, and discuss API tradeoffs in Discussions.
+  - name: Live docs and examples
+    url: https://hackeac.github.io/reveal-ui/
+    about: Browse the docs site for examples, installation steps, FAQ, and API reference.

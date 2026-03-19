@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose an API improvement or a new reveal pattern
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for concrete feature requests. For open-ended usage questions or API discussion, start a GitHub Discussion instead.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What workflow or UI problem are you trying to solve?
+      placeholder: The current API makes it hard to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: Describe the API shape, behavior, or mental model you want.
+      placeholder: I would like RevealPanel to support...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What are you doing today instead?
+      placeholder: Current workaround, competing library, or rejected approach
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example use case
+      description: Share a small code sample, mockup, or product scenario if you have one.

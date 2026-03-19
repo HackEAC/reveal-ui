@@ -23,17 +23,25 @@
     "type": "git",
     "url": "git+https://github.com/HackEAC/reveal-ui.git"
   },
-  "homepage": "https://github.com/HackEAC/reveal-ui#readme",
+  "homepage": "https://hackeac.github.io/reveal-ui/",
   "bugs": {
     "url": "https://github.com/HackEAC/reveal-ui/issues"
   },
   "keywords": [
     "react",
+    "react-ui",
+    "ui-library",
+    "component-library",
+    "design-system",
+    "headless-ui",
     "disclosure",
-    "persistent-summary disclosure",
-    "inline reveal editor",
-    "expanding card disclosure",
-    "accordion",
+    "progressive-disclosure",
+    "inline-editor",
+    "inline-reveal",
+    "select-alternative",
+    "modal-alternative",
+    "accordion-alternative",
+    "nested-flows",
     "motion"
   ],
   "engines": {

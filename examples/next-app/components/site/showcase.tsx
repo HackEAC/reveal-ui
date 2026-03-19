@@ -289,7 +289,35 @@ const installCommands = [
   },
 ] as const
 
+const comparisonPlans = [
+  {
+    id: 'steady',
+    label: 'Steady',
+    price: '$79/mo',
+    rollout: '3-day rollout',
+    fit: 'Operations teams that want low variance.',
+    note: 'Lowest implementation risk and the easiest approval path.',
+  },
+  {
+    id: 'growth',
+    label: 'Growth',
+    price: '$149/mo',
+    rollout: '1-week rollout',
+    fit: 'Teams that need more control without enterprise overhead.',
+    note: 'Best default when the team needs stronger automation and reporting.',
+  },
+  {
+    id: 'scale',
+    label: 'Scale',
+    price: '$299/mo',
+    rollout: '2-week rollout',
+    fit: 'Multi-workspace teams that need deeper review flows.',
+    note: 'Highest capability, but more setup detail matters before you choose it.',
+  },
+] as const
+
 const navigationItems = [
+  { id: 'examples', label: 'Examples' },
   { id: 'docs', label: 'Docs' },
   { id: 'faq', label: 'FAQ' },
 ] as const
@@ -1162,6 +1190,352 @@ function InstallChooser({ onCollapseAll }: { onCollapseAll: () => void }) {
   )
 }
 
+function ExamplePatternCard({
+  description,
+  kicker,
+  title,
+  children,
+}: {
+  description: string
+  kicker: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <Card className="glass-card h-full rounded-md border border-border/60 shadow-none">
+      <CardHeader className="space-y-3">
+        <Badge className="w-fit" variant="outline">
+          {kicker}
+        </Badge>
+        <div className="space-y-2">
+          <CardTitle className="text-2xl tracking-[-0.03em]">{title}</CardTitle>
+          <CardDescription className="text-sm leading-6">{description}</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  )
+}
+
+function InlineEditorMiniDemo() {
+  const [profile, setProfile] = React.useState({
+    name: 'Northshore Ops',
+    notes: 'Escalate only when the target workspace has pending legal review.',
+  })
+  const [draftName, setDraftName] = React.useState(profile.name)
+  const [draftNotes, setDraftNotes] = React.useState(profile.notes)
+
+  return (
+    <ExamplePatternCard
+      description="A richer form opens inline while the summary and downstream context stay visible."
+      kicker="Inline editor"
+      title="Edit without replacing the summary"
+    >
+      <RevealPanel
+        className="overflow-hidden rounded-md border border-border/60 bg-card"
+        content={({ close }) => (
+          <div className="space-y-4 border-t border-border/60 bg-card px-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="inline-editor-name">Workspace label</Label>
+              <Input
+                id="inline-editor-name"
+                onChange={(event) => setDraftName(event.target.value)}
+                value={draftName}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="inline-editor-notes">Review note</Label>
+              <Textarea
+                id="inline-editor-notes"
+                onChange={(event) => setDraftNotes(event.target.value)}
+                rows={4}
+                value={draftNotes}
+              />
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <RevealClose asChild>
+                <Button size="sm" variant="ghost">
+                  Cancel
+                </Button>
+              </RevealClose>
+              <Button
+                onClick={() => {
+                  setProfile({ name: draftName, notes: draftNotes })
+                  close()
+                }}
+                size="sm"
+              >
+                Save summary
+              </Button>
+            </div>
+          </div>
+        )}
+        keepMounted
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) return
+          setDraftName(profile.name)
+          setDraftNotes(profile.notes)
+        }}
+        regionLabel="Inline editor example"
+      >
+        <RevealPanel.Top>
+          <div className="bg-card px-4 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">{profile.name}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{profile.notes}</p>
+              </div>
+              <RevealTrigger asChild>
+                <Button size="sm">Edit</Button>
+              </RevealTrigger>
+            </div>
+          </div>
+        </RevealPanel.Top>
+
+        <RevealPanel.Bottom>
+          <div className="bg-secondary/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Footer context stays visible: next sync in 2 minutes, legal review optional.
+          </div>
+        </RevealPanel.Bottom>
+      </RevealPanel>
+    </ExamplePatternCard>
+  )
+}
+
+function PlanComparisonMiniDemo() {
+  const [selectedPlanId, setSelectedPlanId] =
+    React.useState<(typeof comparisonPlans)[number]['id']>('growth')
+  const selectedPlan =
+    comparisonPlans.find((plan) => plan.id === selectedPlanId) ?? comparisonPlans[0]
+
+  return (
+    <ExamplePatternCard
+      description="Use reveal when the user needs rollout, fit, and caveats before the decision is real."
+      kicker="Plan comparison"
+      title="Show the tradeoff, not just the label"
+    >
+      <RevealPanel
+        className="overflow-hidden rounded-md border border-border/60 bg-card"
+        content={({ close }) => (
+          <div className="space-y-3 border-t border-border/60 bg-card px-4 py-4">
+            {comparisonPlans.map((plan) => (
+              <button
+                className={cn(
+                  'w-full rounded-md border px-4 py-4 text-left transition-colors',
+                  plan.id === selectedPlanId
+                    ? 'border-primary bg-primary/8'
+                    : 'border-border/60 bg-background hover:bg-secondary/70',
+                )}
+                key={plan.id}
+                onClick={() => {
+                  setSelectedPlanId(plan.id)
+                  close()
+                }}
+                type="button"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-foreground">{plan.label}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{plan.fit}</p>
+                  </div>
+                  <Badge variant={plan.id === selectedPlanId ? 'default' : 'outline'}>
+                    {plan.price}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  {plan.rollout} · {plan.note}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
+        keepMounted
+        regionLabel="Plan comparison example"
+      >
+        <RevealPanel.Top>
+          <div className="bg-card px-4 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Current recommendation: {selectedPlan.label}
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">{selectedPlan.fit}</p>
+              </div>
+              <RevealTrigger asChild>
+                <Button size="sm" variant="secondary">
+                  Compare plans
+                </Button>
+              </RevealTrigger>
+            </div>
+          </div>
+        </RevealPanel.Top>
+
+        <RevealPanel.Bottom>
+          <div className="bg-secondary/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            {selectedPlan.price} · {selectedPlan.rollout}
+          </div>
+        </RevealPanel.Bottom>
+      </RevealPanel>
+    </ExamplePatternCard>
+  )
+}
+
+function NestedEditFlowMiniDemo() {
+  const [approvalRoute, setApprovalRoute] = React.useState('Risk review first')
+
+  return (
+    <ExamplePatternCard
+      description="A deeper step can open only when needed, then close itself or bubble completion back to the parent flow."
+      kicker="Nested flow"
+      title="Close the inner step or the whole chain"
+    >
+      <RevealPanel
+        className="overflow-hidden rounded-md border border-border/60 bg-card"
+        content={() => (
+          <div className="space-y-4 border-t border-border/60 bg-card px-4 py-4">
+            <p className="text-sm leading-6 text-muted-foreground">
+              The outer workflow stays visible while the deeper approval step opens only when the
+              user asks for it.
+            </p>
+
+            <RevealPanel
+              className="overflow-hidden rounded-md border border-border/60 bg-background"
+              content={({ close }) => (
+                <div className="space-y-3 border-t border-border/60 bg-background px-4 py-4">
+                  {['Risk review first', 'Legal review first', 'Ops sign-off only'].map((route) => (
+                    <button
+                      className={cn(
+                        'w-full rounded-md border px-3 py-3 text-left text-sm transition-colors',
+                        route === approvalRoute
+                          ? 'border-primary bg-primary/8 text-foreground'
+                          : 'border-border/60 hover:bg-secondary/70',
+                      )}
+                      key={route}
+                      onClick={() => setApprovalRoute(route)}
+                      type="button"
+                    >
+                      {route}
+                    </button>
+                  ))}
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button onClick={() => close()} size="sm" variant="outline">
+                      Save nested step
+                    </Button>
+                    <Button onClick={() => close({ propagate: true })} size="sm">
+                      Save and close all
+                    </Button>
+                  </div>
+                </div>
+              )}
+              keepMounted
+              regionLabel="Nested approval route example"
+            >
+              <RevealPanel.Top>
+                <div className="bg-background px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Approval route</p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {approvalRoute}
+                      </p>
+                    </div>
+                    <RevealTrigger asChild>
+                      <Button size="sm" variant="secondary">
+                        Adjust route
+                      </Button>
+                    </RevealTrigger>
+                  </div>
+                </div>
+              </RevealPanel.Top>
+
+              <RevealPanel.Bottom>
+                <div className="bg-secondary/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  Use propagate to finish the inner step and collapse the parent flow in one action.
+                </div>
+              </RevealPanel.Bottom>
+            </RevealPanel>
+
+            <div className="flex justify-end">
+              <RevealClose asChild>
+                <Button size="sm" variant="ghost">
+                  Done with access flow
+                </Button>
+              </RevealClose>
+            </div>
+          </div>
+        )}
+        keepMounted
+        regionLabel="Nested flow example"
+      >
+        <RevealPanel.Top>
+          <div className="bg-card px-4 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Workspace access flow</p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Current route: {approvalRoute}
+                </p>
+              </div>
+              <RevealTrigger asChild>
+                <Button size="sm">Manage access</Button>
+              </RevealTrigger>
+            </div>
+          </div>
+        </RevealPanel.Top>
+
+        <RevealPanel.Bottom>
+          <div className="bg-secondary/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Summary, nested step, and completion action all live in one visible flow.
+          </div>
+        </RevealPanel.Bottom>
+      </RevealPanel>
+    </ExamplePatternCard>
+  )
+}
+
+function ExamplePatternsExperience() {
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <div className="space-y-4">
+          <Badge className="section-kicker" variant="outline">
+            Examples
+          </Badge>
+          <h2 className="font-display text-4xl tracking-[-0.04em] text-foreground md:text-5xl">
+            Three small demos that show where the primitive earns its place
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+            These are small, production-shaped examples: edit inline, compare real plan tradeoffs,
+            and run a nested flow without chaining modals.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild variant="outline">
+              <a href="#docs">Jump to docs</a>
+            </Button>
+            <Button asChild>
+              <a href={siteConfig.discussionUrl} rel="noreferrer" target="_blank">
+                Discuss use cases
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <InlineEditorMiniDemo />
+        <PlanComparisonMiniDemo />
+        <NestedEditFlowMiniDemo />
+      </div>
+    </div>
+  )
+}
+
 function RevealSolutionDemo({
   celebrated,
   onCollapseAll,
@@ -1683,7 +2057,7 @@ export function ShowcasePage() {
                 <DialogHeader>
                   <DialogTitle>Menu</DialogTitle>
                   <DialogDescription>
-                    Jump to the docs, the FAQ, or the repository from mobile.
+                    Jump to examples, docs, FAQ, or the repository from mobile.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -1749,6 +2123,10 @@ export function ShowcasePage() {
       <main>
         <section className="section-shell pt-14 md:pt-20" id="overview">
           <HeroRevealExperience />
+        </section>
+
+        <section className="section-shell pt-0" id="examples">
+          <ExamplePatternsExperience />
         </section>
 
         <section className="section-shell" id="docs">
@@ -1846,6 +2224,11 @@ export function ShowcasePage() {
               <div className="flex flex-wrap gap-3">
                 <Button asChild variant="outline">
                   <a href="#overview">Replay the hero reveal</a>
+                </Button>
+                <Button asChild variant="outline">
+                  <a href={siteConfig.discussionUrl} rel="noreferrer" target="_blank">
+                    Join discussions
+                  </a>
                 </Button>
                 <Button asChild>
                   <a href={siteConfig.repoUrl} rel="noreferrer" target="_blank">

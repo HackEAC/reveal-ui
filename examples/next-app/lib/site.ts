@@ -1,15 +1,21 @@
 export const siteConfig = {
   description:
-    'A lightweight React docs site showing how reveal-ui solves rich inline selection problems with persistent-summary disclosure instead of cramped selects or nested modal detours.',
+    'A React docs site showing how reveal-ui keeps summary and workflow context visible while richer detail opens inline for editors, plan comparison, and nested choice flows.',
+  discussionUrl: 'https://github.com/HackEAC/reveal-ui/discussions',
   installCommand: 'npm install reveal-ui motion react react-dom',
   keywords: [
     'reveal-ui',
     'persistent-summary disclosure',
     'inline reveal editor',
     'expanding card disclosure',
-    'React UI library',
+    'React UI primitive',
+    'headless React component',
+    'design system primitive',
     'React select alternative',
     'nested modal alternative',
+    'accordion alternative',
+    'plan comparison UI',
+    'nested edit flow',
     'property chooser UI',
     'rich option picker',
     'dialog inline chooser',
