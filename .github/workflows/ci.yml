@@ -62,6 +62,9 @@ jobs:
       - name: Validate packaged artifact
         run: npm run ci
 
+      - name: Verify publish tarball
+        run: npm publish --dry-run --ignore-scripts
+
   coverage:
     runs-on: ubuntu-latest
     needs: verify

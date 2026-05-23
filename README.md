@@ -51,7 +51,7 @@ npm install reveal-ui motion react react-dom
 | --- | --- | --- |
 | `react` | `^19` | Peer dependency |
 | `react-dom` | `^19` | Peer dependency |
-| `motion` | `^12.34.5` | Needed only when you enable `magicMotion` |
+| `motion` | `^12.40.0` | Needed only when you enable `magicMotion` |
 
 ## When To Use It
 
