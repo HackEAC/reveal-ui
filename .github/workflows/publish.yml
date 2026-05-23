@@ -36,8 +36,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          cache: npm
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
@@ -93,10 +92,6 @@ jobs:
         if: steps.metadata.outputs.should_publish == 'true'
         run: npm run ci
 
-      - name: Verify npm OIDC authentication
-        if: steps.metadata.outputs.should_publish == 'true'
-        run: npm whoami
-
       - name: Skip already published version
         if: steps.metadata.outputs.should_publish != 'true'
         run: |
@@ -107,4 +102,11 @@ jobs:
 
       - name: Publish to npm
         if: steps.metadata.outputs.should_publish == 'true'
-        run: npm publish --access public --provenance --tag "${{ steps.metadata.outputs.dist_tag }}"
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: |
+          if [ -f "${NPM_CONFIG_USERCONFIG:-}" ]; then
+            sed -i '/:_authToken=/d' "$NPM_CONFIG_USERCONFIG"
+          fi
+          npm --version
+          npm publish --access public --provenance --tag "${{ steps.metadata.outputs.dist_tag }}"
