@@ -38,13 +38,13 @@ jest.mock('@/lib/utils', () => ({
 const { DocsExperience } = require('../examples/next-app/components/site/docs-experience')
 
 describe('DocsExperience', () => {
-  it('renders the human-first docs shell by default', () => {
+  it('renders the docs shell by default', () => {
     render(React.createElement(DocsExperience))
 
     expect(
       screen.getByRole('heading', {
-        level: 2,
-        name: 'Developer docs that read like a real reference surface',
+        level: 1,
+        name: 'API reference and integration guide',
       }),
     ).toBeInTheDocument()
     expect(

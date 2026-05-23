@@ -1,4 +1,4 @@
-import { ShowcasePage } from '@/components/site/showcase'
+import { HomePage } from '@/components/site/home/home-page'
 import { siteConfig } from '@/lib/site'
 
 const structuredData = [
@@ -26,7 +26,7 @@ export default function Home() {
   return (
     <>
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-      <ShowcasePage />
+      <HomePage />
     </>
   )
 }

@@ -594,7 +594,7 @@ function DocsSectionBlock({
   return (
     <section className="scroll-mt-28 space-y-4" id={id}>
       <div className="space-y-2">
-        <h3 className="font-display text-3xl tracking-[-0.04em] text-foreground">{title}</h3>
+        <h3 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">{title}</h3>
         <p className="max-w-3xl text-sm leading-7 text-muted-foreground">{description}</p>
       </div>
       {children}
@@ -1063,25 +1063,22 @@ export function DocsExperience() {
   return (
     <div className="space-y-8">
       <div className="max-w-3xl space-y-4">
-        <Badge className="section-kicker" variant="outline">
-          Docs
-        </Badge>
+        <p className="section-label">Documentation</p>
         <div className="space-y-3">
-          <h2 className="font-display text-4xl tracking-[-0.04em] text-foreground md:text-5xl">
-            Developer docs that read like a real reference surface
-          </h2>
+          <h1 className="text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-5xl">
+            API reference and integration guide
+          </h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-            The docs are now organized for people first: fast scanning, precise API tables, direct
-            installation guidance, and the lifecycle details you need when the reveal becomes part
-            of real product flow.
+            Install paths, composition model, lifecycle behavior, and the full RevealPanel prop
+            surface for production integrations.
           </p>
         </div>
       </div>
 
-      <Card className="glass-card overflow-hidden rounded-md border border-border/35">
-        <CardContent className="p-0">
+      <div className="surface-panel overflow-hidden">
+        <div className="p-0">
           <div className="grid xl:grid-cols-[15rem_minmax(0,1fr)_14rem]">
-            <aside className="border-b border-border/25 bg-secondary/30 p-4 xl:border-b-0 xl:border-r">
+            <aside className="border-b border-border bg-secondary/30 p-4 xl:border-b-0 xl:border-r">
               <div className="space-y-3 xl:sticky xl:top-24">
                 <p className="text-sm font-semibold text-foreground">Browse docs</p>
                 <div className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
@@ -1158,8 +1155,8 @@ export function DocsExperience() {
               </div>
             </aside>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 export const siteConfig = {
   description:
-    'A React docs site showing how reveal-ui keeps summary and workflow context visible while richer detail opens inline for editors, plan comparison, and nested choice flows.',
+    'Documentation and examples for reveal-ui — persistent-summary disclosure for inline editors, plan comparison, and nested React flows.',
   discussionUrl: 'https://github.com/HackEAC/reveal-ui/discussions',
   installCommand: 'npm install reveal-ui motion react react-dom',
   keywords: [

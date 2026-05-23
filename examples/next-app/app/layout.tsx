@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from 'next'
-import { Fraunces, Manrope } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
+import { SiteShell } from '@/components/site/layout/site-shell'
 import { siteConfig } from '@/lib/site'
 import './globals.css'
 
-const manrope = Manrope({
+const geistSans = Geist({
   subsets: ['latin'],
-  variable: '--font-manrope',
+  variable: '--font-geist-sans',
 })
 
-const fraunces = Fraunces({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-fraunces',
+  variable: '--font-geist-mono',
 })
 
 export const metadata: Metadata = {
@@ -53,7 +54,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'dark light',
-  themeColor: '#f4f1eb',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0f11' },
+  ],
 }
 
 export default function RootLayout({
@@ -62,11 +66,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${manrope.variable} ${fraunces.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
       >
-        {children}
+        <SiteShell>{children}</SiteShell>
       </body>
     </html>
   )
