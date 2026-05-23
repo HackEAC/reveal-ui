@@ -23,6 +23,9 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -89,6 +92,10 @@ jobs:
       - name: Validate package
         if: steps.metadata.outputs.should_publish == 'true'
         run: npm run ci
+
+      - name: Verify npm OIDC authentication
+        if: steps.metadata.outputs.should_publish == 'true'
+        run: npm whoami
 
       - name: Skip already published version
         if: steps.metadata.outputs.should_publish != 'true'

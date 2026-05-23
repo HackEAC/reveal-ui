@@ -416,7 +416,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
 
   const restoreFocusToTrigger = React.useCallback(() => {
     const target = lastTriggerRef.current
-    if (!target || !target.isConnected) return
+    if (!target?.isConnected) return
 
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
       window.requestAnimationFrame(() => {
