@@ -63,7 +63,7 @@ jobs:
         run: npm run ci
 
       - name: Verify publish tarball
-        run: npm publish --dry-run
+        run: npm publish --dry-run --ignore-scripts
 
   coverage:
     runs-on: ubuntu-latest
