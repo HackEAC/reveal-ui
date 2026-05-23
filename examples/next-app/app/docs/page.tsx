@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function DocsPage() {
   return (
     <PageFrame>
-      <section className="page-section page-shell">
+      <section className="page-section page-shell min-w-0 overflow-x-hidden">
         <DocsExperience />
       </section>
     </PageFrame>
