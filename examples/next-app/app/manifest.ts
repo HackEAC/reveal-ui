@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     background_color: '#f7f3ea',
     description:
-      'Interactive reveal-ui showcase for rich inline selection, persistent-summary disclosure, and dialog-safe comparison flows.',
+      'Documentation and examples for reveal-ui — inline disclosure for React editors, comparisons, and nested flows.',
     display: 'standalone',
     icons: [
       {

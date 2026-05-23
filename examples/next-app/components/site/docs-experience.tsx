@@ -511,8 +511,8 @@ function getDocsPage(pageId: DocsPageId) {
 
 function DocsTable({ columns, rows }: { columns: DocsTableColumn[]; rows: DocsTableRow[] }) {
   return (
-    <div className="overflow-hidden rounded-md border border-border/25 bg-background/90">
-      <div className="overflow-x-auto">
+    <div className="rounded-md border border-border/25 bg-background/90">
+      <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1 [scrollbar-width:thin]">
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="border-b border-border/30 bg-secondary/50">
@@ -558,9 +558,11 @@ function DocsTable({ columns, rows }: { columns: DocsTableColumn[]; rows: DocsTa
 
 function CodeSnippet({ code }: { code: string }) {
   return (
-    <pre className="code-block whitespace-pre-wrap">
-      <code>{code}</code>
-    </pre>
+    <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+      <pre className="code-block min-w-0 whitespace-pre-wrap">
+        <code>{code}</code>
+      </pre>
+    </div>
   )
 }
 
@@ -594,7 +596,7 @@ function DocsSectionBlock({
   return (
     <section className="scroll-mt-28 space-y-4" id={id}>
       <div className="space-y-2">
-        <h3 className="font-display text-3xl tracking-[-0.04em] text-foreground">{title}</h3>
+        <h3 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">{title}</h3>
         <p className="max-w-3xl text-sm leading-7 text-muted-foreground">{description}</p>
       </div>
       {children}
@@ -1041,10 +1043,21 @@ function DocsPageContent({ pageId }: { pageId: DocsPageId }) {
   )
 }
 
-function DocsSectionJump({ label, targetId }: { label: string; targetId: string }) {
+function DocsSectionJump({
+  className,
+  label,
+  targetId,
+}: {
+  className?: string
+  label: string
+  targetId: string
+}) {
   return (
     <button
-      className="text-left text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+      className={cn(
+        'shrink-0 text-left text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground',
+        className,
+      )}
       onClick={() => {
         const element = document.getElementById(targetId)
         element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -1063,35 +1076,32 @@ export function DocsExperience() {
   return (
     <div className="space-y-8">
       <div className="max-w-3xl space-y-4">
-        <Badge className="section-kicker" variant="outline">
-          Docs
-        </Badge>
+        <p className="section-label">Documentation</p>
         <div className="space-y-3">
-          <h2 className="font-display text-4xl tracking-[-0.04em] text-foreground md:text-5xl">
-            Developer docs that read like a real reference surface
-          </h2>
+          <h1 className="text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-5xl">
+            API reference and integration guide
+          </h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-            The docs are now organized for people first: fast scanning, precise API tables, direct
-            installation guidance, and the lifecycle details you need when the reveal becomes part
-            of real product flow.
+            Install paths, composition model, lifecycle behavior, and the full RevealPanel prop
+            surface for production integrations.
           </p>
         </div>
       </div>
 
-      <Card className="glass-card overflow-hidden rounded-md border border-border/35">
-        <CardContent className="p-0">
-          <div className="grid xl:grid-cols-[15rem_minmax(0,1fr)_14rem]">
-            <aside className="border-b border-border/25 bg-secondary/30 p-4 xl:border-b-0 xl:border-r">
+      <div className="surface-panel min-w-0">
+        <div className="p-0">
+          <div className="grid min-w-0 xl:grid-cols-[15rem_minmax(0,1fr)_14rem]">
+            <aside className="border-b border-border bg-secondary/30 p-4 xl:border-b-0 xl:border-r">
               <div className="space-y-3 xl:sticky xl:top-24">
                 <p className="text-sm font-semibold text-foreground">Browse docs</p>
-                <div className="flex gap-2 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible xl:pb-0">
+                <div className="-mx-4 flex flex-col gap-2 px-4 xl:mx-0 xl:px-0">
                   {docsPages.map((item) => {
                     const isActive = item.id === activePage
 
                     return (
                       <button
                         className={cn(
-                          'min-w-[12rem] rounded-md px-4 py-3 text-left transition-colors xl:min-w-0',
+                          'w-full shrink-0 rounded-md px-4 py-3 text-left transition-colors',
                           isActive
                             ? 'bg-background text-foreground'
                             : 'bg-transparent text-muted-foreground hover:bg-background/70 hover:text-foreground',
@@ -1126,6 +1136,20 @@ export function DocsExperience() {
                 </p>
               </div>
 
+              <div className="mt-6 space-y-3 border-b border-border/25 pb-6">
+                <p className="text-sm font-semibold text-foreground">On this page</p>
+                <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin] xl:flex-col xl:overflow-visible xl:pb-0">
+                  {page.sections.map((section) => (
+                    <DocsSectionJump
+                      className="rounded-full border border-border bg-background px-3 py-1.5 whitespace-nowrap xl:rounded-none xl:border-0 xl:bg-transparent xl:px-0 xl:py-0 xl:whitespace-normal"
+                      key={section.id}
+                      label={section.label}
+                      targetId={`docs-${activePage}-${section.id}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <Separator className="my-6" />
 
               <DocsPageContent pageId={activePage} />
@@ -1133,19 +1157,6 @@ export function DocsExperience() {
 
             <aside className="hidden bg-background/60 p-5 xl:block">
               <div className="space-y-6 xl:sticky xl:top-24">
-                <div className="space-y-3 rounded-md bg-background/85 p-4">
-                  <p className="text-sm font-semibold text-foreground">On this page</p>
-                  <div className="flex flex-col gap-2">
-                    {page.sections.map((section) => (
-                      <DocsSectionJump
-                        key={section.id}
-                        label={section.label}
-                        targetId={`docs-${activePage}-${section.id}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
                 <div className="space-y-3 rounded-md bg-secondary/35 p-4">
                   <p className="text-sm font-semibold text-foreground">Quick facts</p>
                   <ul className="space-y-3 text-sm leading-6 text-muted-foreground">
@@ -1158,8 +1169,8 @@ export function DocsExperience() {
               </div>
             </aside>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
