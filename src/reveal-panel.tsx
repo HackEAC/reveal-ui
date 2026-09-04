@@ -171,22 +171,36 @@ function normalizeError(raw: unknown): RevealError | null {
   if (raw instanceof Error) return { message: raw.message, cause: raw }
 
   if (typeof raw === 'object') {
-    const candidate = raw as { message?: unknown; error?: unknown; title?: unknown; code?: unknown }
-
-    if (typeof candidate.message === 'string') {
-      return {
-        message: candidate.message,
-        title: typeof candidate.title === 'string' ? candidate.title : undefined,
-        code:
-          typeof candidate.code === 'string' || typeof candidate.code === 'number'
-            ? candidate.code
-            : undefined,
-        cause: raw,
-      }
+    const candidate = raw as {
+      message?: unknown
+      error?: unknown
+      title?: unknown
+      code?: unknown
+      cause?: unknown
     }
+    const message =
+      typeof candidate.message === 'string'
+        ? candidate.message
+        : typeof candidate.error === 'string'
+          ? candidate.error
+          : null
 
-    if (typeof candidate.error === 'string') {
-      return { message: candidate.error, cause: raw }
+    if (message !== null) {
+      const normalized: RevealError = { message }
+
+      if (typeof candidate.title === 'string') {
+        normalized.title = candidate.title
+      }
+      if (typeof candidate.code === 'string' || typeof candidate.code === 'number') {
+        normalized.code = candidate.code
+      }
+      if (Object.hasOwn(candidate, 'cause')) {
+        normalized.cause = candidate.cause
+      } else if (typeof candidate.message !== 'string') {
+        normalized.cause = raw
+      }
+
+      return normalized
     }
   }
 
@@ -520,6 +534,8 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const phaseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousOpenRef = React.useRef(isOpen)
   const isMountedRef = React.useRef(true)
+  const isOpenRef = React.useRef(isOpen)
+  const closeGenerationRef = React.useRef(0)
   const closeInFlightRef = React.useRef(false)
   const restoreScrollSnapshotRef = React.useRef<ScrollRestoreSnapshot | null>(null)
   const restoreScrollStartedRef = React.useRef(false)
@@ -579,15 +595,23 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     }
   }, [])
 
-  React.useEffect(
-    () => () => {
+  React.useEffect(() => {
+    isMountedRef.current = true
+    return () => {
       isMountedRef.current = false
-    },
-    [],
-  )
+    }
+  }, [])
+
+  React.useLayoutEffect(() => {
+    if (isOpenRef.current !== isOpen) {
+      closeGenerationRef.current += 1
+      isOpenRef.current = isOpen
+    }
+  }, [isOpen])
 
   const open = React.useCallback(() => {
     if (disabled) return
+    closeGenerationRef.current += 1
     if (shouldCloseSiblings && group) {
       group.closeOthers(instanceId)
     }
@@ -619,11 +643,17 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const close = React.useCallback(
     (arg?: CloseOptions) => {
       if (!isOpen || closeInFlightRef.current) return
+      const closeGeneration = closeGenerationRef.current
 
       const finishClose = () => {
-        if (!isMountedRef.current) return
+        if (
+          !isMountedRef.current ||
+          !isOpenRef.current ||
+          closeGenerationRef.current !== closeGeneration
+        ) {
+          return
+        }
         setOpenState(false)
-        setErrorState(null)
         if ((arg?.restoreFocus ?? restoreFocusOnClose) && !arg?.propagate) {
           restoreFocusToTrigger()
         }
@@ -633,7 +663,13 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       }
 
       const handleCloseError = (error: unknown) => {
-        if (!isMountedRef.current) return
+        if (
+          !isMountedRef.current ||
+          !isOpenRef.current ||
+          closeGenerationRef.current !== closeGeneration
+        ) {
+          return
+        }
         reportError(error)
         if (isDevelopment) {
           console.error('RevealPanel onClose failed; panel remains open.', error)
@@ -670,7 +706,6 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       reportError,
       restoreFocusOnClose,
       restoreFocusToTrigger,
-      setErrorState,
       setOpenState,
     ],
   )
@@ -1556,6 +1591,9 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
 
     previousOpenRef.current = isOpen
     clearPhaseTimer()
+    if (!isOpen) {
+      setErrorState(null)
+    }
     setPhase(
       isOpen
         ? openingPhaseDurationMs === 0
@@ -1565,7 +1603,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
           ? 'closed'
           : 'closing',
     )
-  }, [clearPhaseTimer, closingPhaseDurationMs, isOpen, openingPhaseDurationMs])
+  }, [clearPhaseTimer, closingPhaseDurationMs, isOpen, openingPhaseDurationMs, setErrorState])
 
   React.useEffect(() => {
     clearPhaseTimer()

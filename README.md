@@ -170,6 +170,7 @@ function StatusLine({ phase }: { phase: string }) {
 | `defaultOpen` | `boolean` | Initial state for uncontrolled usage |
 | `open` | `boolean` | Controlled open state |
 | `onOpenChange` | `(open: boolean) => void` | Change handler for controlled usage |
+| `onClose` | <code>(options?: CloseOptions) =&gt; void &#124; Promise&lt;void&gt;</code> | Runs before closing; a returned promise delays closing, and a rejection keeps the panel open and reports an error |
 | `disabled` | `boolean` | Disables opening and closing interactions |
 | `triggerAttr` | `string` | Attribute name used for delegated trigger nodes |
 | `restoreAttr` | `string` | Attribute name used for delegated restore/close nodes |
@@ -253,6 +254,7 @@ Forms and actions inside the revealed region often call the backend. When those 
 | Header badge | A red circle with a white cross renders in the top-right of the top region |
 | State attributes | `data-error` is set on the scope, top region, revealed content, bottom region, and triggers |
 | `onClose` rejections | If `onClose` rejects, the panel stays open and the rejection becomes the panel error |
+| Pending close guard | Repeated close requests are ignored while an `onClose` promise is pending |
 | Controlled errors | Pass `error` to drive the error state from outside; `onErrorChange` mirrors changes |
 | Clearing | `clearError()` or closing the panel removes the error |
 

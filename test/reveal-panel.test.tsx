@@ -400,6 +400,94 @@ describe('RevealPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('closes correctly when rendered inside React StrictMode', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <React.StrictMode>
+        <RevealPanel
+          content={
+            <div>
+              <p>Strict mode content</p>
+              <RevealClose>Close strict</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open strict</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>
+      </React.StrictMode>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open strict' }))
+    await user.click(screen.getByRole('button', { name: 'Close strict' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Strict mode content')).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not apply an async close completion to a reopened controlled panel', async () => {
+    const user = userEvent.setup()
+    const deferred = createDeferred<void>()
+
+    function ControlledAsyncHarness() {
+      const [open, setOpen] = React.useState(true)
+
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(false)}>
+            Force controlled close
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen controlled
+          </button>
+          <RevealPanel
+            open={open}
+            onOpenChange={setOpen}
+            onClose={() => deferred.promise}
+            content={({ reportError }) => (
+              <div>
+                <p>Controlled async content</p>
+                <RevealClose>Start async close</RevealClose>
+                <button type="button" onClick={() => reportError('New session failure')}>
+                  Report new session error
+                </button>
+              </div>
+            )}
+          >
+            <RevealPanel.Top>
+              <RevealTrigger>Open controlled async</RevealTrigger>
+            </RevealPanel.Top>
+            <RevealPanel.Bottom>
+              <div />
+            </RevealPanel.Bottom>
+          </RevealPanel>
+        </div>
+      )
+    }
+
+    const { container } = render(<ControlledAsyncHarness />)
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Start async close' }))
+    await user.click(screen.getByRole('button', { name: 'Force controlled close' }))
+    await user.click(screen.getByRole('button', { name: 'Reopen controlled' }))
+    await user.click(screen.getByRole('button', { name: 'Report new session error' }))
+
+    await act(async () => {
+      deferred.resolve()
+      await deferred.promise
+    })
+
+    expect(scope).toHaveAttribute('data-state', 'open')
+    expect(screen.getByRole('alert')).toHaveTextContent('New session failure')
+  })
+
   it('restores the previous window scroll position after close when enabled', () => {
     jest.useFakeTimers()
 
@@ -1205,6 +1293,73 @@ describe('RevealPanel', () => {
     expect(onError).toHaveBeenCalledWith({ message: 'Backend rejected the save.' })
   })
 
+  it('preserves supported fields when normalizing structured errors', async () => {
+    const user = userEvent.setup()
+    const onError = jest.fn()
+    const messageCause = new Error('Message cause')
+    const errorCause = new Error('Error-field cause')
+
+    render(
+      <RevealPanel
+        defaultOpen
+        onError={onError}
+        content={({ reportError }) => (
+          <div>
+            <button
+              type="button"
+              onClick={() =>
+                reportError({
+                  message: 'Structured message',
+                  title: 'Message title',
+                  code: 409,
+                  cause: messageCause,
+                })
+              }
+            >
+              Report message payload
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                reportError({
+                  error: 'Structured error field',
+                  title: 'Error title',
+                  code: 'SAVE_FAILED',
+                  cause: errorCause,
+                })
+              }
+            >
+              Report error payload
+            </button>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <div />
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Report message payload' }))
+    expect(onError).toHaveBeenLastCalledWith({
+      message: 'Structured message',
+      title: 'Message title',
+      code: 409,
+      cause: messageCause,
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Report error payload' }))
+    expect(onError).toHaveBeenLastCalledWith({
+      message: 'Structured error field',
+      title: 'Error title',
+      code: 'SAVE_FAILED',
+      cause: errorCause,
+    })
+  })
+
   it('reports and clears errors through useRevealPanelState', async () => {
     const user = userEvent.setup()
 
@@ -1368,6 +1523,86 @@ describe('RevealPanel', () => {
     })
 
     expect(onErrorChange).toHaveBeenCalledWith(null)
+  })
+
+  it('clears an uncontrolled error when controlled open state closes externally', async () => {
+    const user = userEvent.setup()
+
+    function ExternallyClosedHarness() {
+      const [open, setOpen] = React.useState(true)
+
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(false)}>
+            Close externally
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen externally
+          </button>
+          <RevealPanel
+            open={open}
+            onOpenChange={setOpen}
+            content={({ reportError }) => (
+              <button type="button" onClick={() => reportError('Transient controlled failure')}>
+                Report controlled failure
+              </button>
+            )}
+          >
+            <RevealPanel.Top>
+              <div />
+            </RevealPanel.Top>
+            <RevealPanel.Bottom>
+              <div />
+            </RevealPanel.Bottom>
+          </RevealPanel>
+        </div>
+      )
+    }
+
+    const { container } = render(<ExternallyClosedHarness />)
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Report controlled failure' }))
+    expect(scope).toHaveAttribute('data-error', '')
+
+    await user.click(screen.getByRole('button', { name: 'Close externally' }))
+    expect(scope).not.toHaveAttribute('data-error')
+
+    await user.click(screen.getByRole('button', { name: 'Reopen externally' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps the error when a controlled parent ignores a close request', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = jest.fn()
+
+    render(
+      <RevealPanel
+        open
+        onOpenChange={onOpenChange}
+        content={({ reportError }) => (
+          <div>
+            <button type="button" onClick={() => reportError('Still open failure')}>
+              Report stubborn failure
+            </button>
+            <RevealClose>Request stubborn close</RevealClose>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <div />
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Report stubborn failure' }))
+    await user.click(screen.getByRole('button', { name: 'Request stubborn close' }))
+
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.getByRole('alert')).toHaveTextContent('Still open failure')
   })
 
   it('exports only the supported public package surface', () => {

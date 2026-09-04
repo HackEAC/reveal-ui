@@ -308,6 +308,12 @@ const controlPropRows: DocsTableRow[] = [
     type: '`(open: boolean) => void`',
   },
   {
+    details:
+      'Runs before closing. A returned promise delays the close; repeated close requests are ignored while it is pending, and a rejection keeps the panel open and reports an error.',
+    prop: '`onClose`',
+    type: '`(options?: CloseOptions) => void | Promise<void>`',
+  },
+  {
     details: 'Disables opening and closing interactions for the panel.',
     prop: '`disabled`',
     type: '`boolean`',
