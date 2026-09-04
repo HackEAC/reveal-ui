@@ -28,6 +28,13 @@ export type CloseOptions = {
 
 export type RevealPhase = 'closed' | 'opening' | 'open' | 'closing'
 
+export type RevealError = {
+  message: string
+  title?: string
+  code?: string | number
+  cause?: unknown
+}
+
 export type RevealRenderProps = {
   close: (arg?: CloseOptions) => void
   open: () => void
@@ -35,6 +42,10 @@ export type RevealRenderProps = {
   phase: RevealPhase
   contentId: string
   triggerId?: string
+  error: RevealError | null
+  hasError: boolean
+  reportError: (error: unknown) => void
+  clearError: () => void
 }
 
 export type RevealContentProp = React.ReactNode | ((props: RevealRenderProps) => React.ReactNode)
@@ -49,6 +60,7 @@ export interface RevealPanelProps {
   defaultOpen?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  onClose?: (options?: CloseOptions) => void | Promise<void>
   disabled?: boolean
   triggerAttr?: string
   restoreAttr?: string
@@ -73,6 +85,9 @@ export interface RevealPanelProps {
   scrollSpacerTarget?: 'self' | 'container' | 'none'
   restoreFocusOnClose?: boolean
   regionLabel?: string
+  onError?: (error: RevealError) => void | Promise<void>
+  error?: RevealError | Error | string | null
+  onErrorChange?: (error: RevealError | null) => void
 }
 
 type ResolvedPrimaryScrollTarget = { kind: 'window' } | { kind: 'element'; element: HTMLElement }
@@ -99,6 +114,10 @@ export type RevealPanelState = {
   triggerId?: string
   open: () => void
   close: (arg?: CloseOptions) => void
+  error: RevealError | null
+  hasError: boolean
+  reportError: (error: unknown) => void
+  clearError: () => void
 }
 
 type RevealItemContextValue = RevealPanelState & {
@@ -117,9 +136,61 @@ export function useRevealPanelState(): RevealPanelState {
     throw new Error('useRevealPanelState must be used inside a RevealPanel.')
   }
 
-  const { close, contentId, disabled, isOpen, open, phase, triggerId } = context
+  const {
+    clearError,
+    close,
+    contentId,
+    disabled,
+    error,
+    hasError,
+    isOpen,
+    open,
+    phase,
+    reportError,
+    triggerId,
+  } = context
 
-  return { close, contentId, disabled, isOpen, open, phase, triggerId }
+  return {
+    clearError,
+    close,
+    contentId,
+    disabled,
+    error,
+    hasError,
+    isOpen,
+    open,
+    phase,
+    reportError,
+    triggerId,
+  }
+}
+
+function normalizeError(raw: unknown): RevealError | null {
+  if (raw === null || raw === undefined) return null
+  if (typeof raw === 'string') return { message: raw }
+  if (raw instanceof Error) return { message: raw.message, cause: raw }
+
+  if (typeof raw === 'object') {
+    const candidate = raw as { message?: unknown; error?: unknown; title?: unknown; code?: unknown }
+
+    if (typeof candidate.message === 'string') {
+      return {
+        message: candidate.message,
+        title: typeof candidate.title === 'string' ? candidate.title : undefined,
+        code:
+          typeof candidate.code === 'string' || typeof candidate.code === 'number'
+            ? candidate.code
+            : undefined,
+        cause: raw,
+      }
+    }
+
+    if (typeof candidate.error === 'string') {
+      return { message: candidate.error, cause: raw }
+    }
+  }
+
+  return { message: String(raw) }
 }
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
@@ -131,21 +202,21 @@ function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   ref.current = value
 }
 
-function useControllableState({
+function useControllableState<T>({
   value,
   defaultValue,
   onChange,
 }: {
-  value: boolean | undefined
-  defaultValue: boolean
-  onChange?: (nextValue: boolean) => void
+  value: T | undefined
+  defaultValue: T
+  onChange?: (nextValue: T) => void
 }) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue)
   const isControlled = value !== undefined
   const resolvedValue = isControlled ? value : uncontrolledValue
 
   const setValue = React.useCallback(
-    (nextValue: boolean) => {
+    (nextValue: T) => {
       if (!isControlled) {
         setUncontrolledValue(nextValue)
       }
@@ -219,6 +290,50 @@ const Bottom = ({ children, className }: { children: React.ReactNode; className?
   </div>
 )
 
+const ErrorBanner = ({ error }: { error: RevealError }) => (
+  <div
+    role="alert"
+    data-reveal-error-banner
+    className="mt-3 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5"
+  >
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+    <div className="min-w-0">
+      {error.title ? <p className="text-sm font-semibold text-red-900">{error.title}</p> : null}
+      <p className="text-sm text-red-900">{error.message}</p>
+    </div>
+  </div>
+)
+
+const ErrorBadge = () => (
+  <div
+    aria-hidden
+    data-reveal-error-indicator
+    className="pointer-events-none absolute right-2.5 top-2.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 shadow-sm"
+  >
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-3.5 w-3.5 text-white"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  </div>
+)
+
 export function RevealGroup({
   children,
   closeSiblings = true,
@@ -263,7 +378,7 @@ export const RevealTrigger = React.forwardRef<HTMLButtonElement, RevealTriggerPr
     }
 
     const generatedId = React.useId()
-    const { isOpen, phase, contentId, setLastTrigger, setExplicitTriggerId, open } = context
+    const { error, isOpen, phase, contentId, setLastTrigger, setExplicitTriggerId, open } = context
     const resolvedId = props.id ?? generatedId
     const Component = asChild ? Slot : 'button'
     const isDisabled = disabled ?? context.disabled
@@ -278,6 +393,7 @@ export const RevealTrigger = React.forwardRef<HTMLButtonElement, RevealTriggerPr
         data-disabled={isDisabled ? '' : undefined}
         data-state={isOpen ? 'open' : 'closed'}
         data-phase={phase}
+        data-error={error ? '' : undefined}
         aria-expanded={isOpen}
         aria-controls={contentId}
         disabled={!asChild ? isDisabled : undefined}
@@ -316,6 +432,7 @@ export const RevealClose = React.forwardRef<HTMLButtonElement, RevealTriggerProp
         data-disabled={isDisabled ? '' : undefined}
         data-state={context.isOpen ? 'open' : 'closed'}
         data-phase={context.phase}
+        data-error={context.error ? '' : undefined}
         aria-controls={context.contentId}
         disabled={!asChild ? isDisabled : undefined}
         aria-disabled={asChild && isDisabled ? true : undefined}
@@ -350,6 +467,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     defaultOpen = false,
     open: controlledOpen,
     onOpenChange,
+    onClose,
     disabled = false,
     triggerAttr = 'data-trigger-collapse',
     restoreAttr = 'data-trigger-restore',
@@ -369,16 +487,28 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     scrollSpacerTarget = 'self',
     restoreFocusOnClose = true,
     regionLabel = 'Revealed content',
+    onError,
+    error: errorProp,
+    onErrorChange,
   },
   forwardedRef,
 ) {
   const resolvedContent = content ?? revealContent
   const hasResolvedContent =
     resolvedContent !== null && resolvedContent !== undefined && resolvedContent !== false
+  const resolvedErrorProp = React.useMemo(
+    () => (errorProp === undefined ? undefined : normalizeError(errorProp)),
+    [errorProp],
+  )
   const [isOpen, setOpenState] = useControllableState({
     value: controlledOpen,
     defaultValue: defaultOpen,
     onChange: onOpenChange,
+  })
+  const [error, setErrorState] = useControllableState<RevealError | null>({
+    value: resolvedErrorProp,
+    defaultValue: null,
+    onChange: onErrorChange,
   })
   const [phase, setPhase] = React.useState<RevealPhase>(() =>
     (controlledOpen ?? defaultOpen) ? 'open' : 'closed',
@@ -389,6 +519,8 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
   const lastTriggerRef = React.useRef<HTMLElement | null>(null)
   const phaseTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousOpenRef = React.useRef(isOpen)
+  const isMountedRef = React.useRef(true)
+  const closeInFlightRef = React.useRef(false)
   const restoreScrollSnapshotRef = React.useRef<ScrollRestoreSnapshot | null>(null)
   const restoreScrollStartedRef = React.useRef(false)
   const [extraScrollSpace, setExtraScrollSpace] = React.useState(0)
@@ -447,6 +579,13 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     }
   }, [])
 
+  React.useEffect(
+    () => () => {
+      isMountedRef.current = false
+    },
+    [],
+  )
+
   const open = React.useCallback(() => {
     if (disabled) return
     if (shouldCloseSiblings && group) {
@@ -455,17 +594,85 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     setOpenState(true)
   }, [disabled, group, instanceId, setOpenState, shouldCloseSiblings])
 
+  const reportError = React.useCallback(
+    (raw: unknown) => {
+      const nextError = normalizeError(raw)
+      if (nextError === null) return
+      setErrorState(nextError)
+      void (async () => {
+        try {
+          await onError?.(nextError)
+        } catch (error) {
+          if (isDevelopment) {
+            console.error('RevealPanel onError callback failed.', error)
+          }
+        }
+      })()
+    },
+    [onError, setErrorState],
+  )
+
+  const clearError = React.useCallback(() => {
+    setErrorState(null)
+  }, [setErrorState])
+
   const close = React.useCallback(
     (arg?: CloseOptions) => {
-      setOpenState(false)
-      if ((arg?.restoreFocus ?? restoreFocusOnClose) && !arg?.propagate) {
-        restoreFocusToTrigger()
+      if (!isOpen || closeInFlightRef.current) return
+
+      const finishClose = () => {
+        if (!isMountedRef.current) return
+        setOpenState(false)
+        setErrorState(null)
+        if ((arg?.restoreFocus ?? restoreFocusOnClose) && !arg?.propagate) {
+          restoreFocusToTrigger()
+        }
+        if (arg?.propagate) {
+          parentHierarchy?.close({ propagate: true, restoreFocus: arg.restoreFocus })
+        }
       }
-      if (arg?.propagate) {
-        parentHierarchy?.close({ propagate: true, restoreFocus: arg.restoreFocus })
+
+      const handleCloseError = (error: unknown) => {
+        if (!isMountedRef.current) return
+        reportError(error)
+        if (isDevelopment) {
+          console.error('RevealPanel onClose failed; panel remains open.', error)
+        }
+      }
+
+      closeInFlightRef.current = true
+
+      let result: void | Promise<void>
+      try {
+        result = onClose?.(arg)
+      } catch (error) {
+        handleCloseError(error)
+        closeInFlightRef.current = false
+        return
+      }
+
+      if (result === undefined) {
+        finishClose()
+        closeInFlightRef.current = false
+      } else {
+        void Promise.resolve(result)
+          .then(finishClose)
+          .catch(handleCloseError)
+          .finally(() => {
+            closeInFlightRef.current = false
+          })
       }
     },
-    [parentHierarchy, restoreFocusOnClose, restoreFocusToTrigger, setOpenState],
+    [
+      isOpen,
+      onClose,
+      parentHierarchy,
+      reportError,
+      restoreFocusOnClose,
+      restoreFocusToTrigger,
+      setErrorState,
+      setOpenState,
+    ],
   )
 
   const resolveActionElement = React.useCallback(
@@ -501,6 +708,11 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       element.setAttribute('aria-controls', contentId)
       element.setAttribute('data-state', isOpen ? 'open' : 'closed')
       element.setAttribute('data-phase', phase)
+      if (error) {
+        element.setAttribute('data-error', '')
+      } else {
+        element.removeAttribute('data-error')
+      }
       if (disabled) {
         element.setAttribute('aria-disabled', 'true')
         element.setAttribute('data-disabled', '')
@@ -522,6 +734,11 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       element.setAttribute('aria-controls', contentId)
       element.setAttribute('data-state', isOpen ? 'open' : 'closed')
       element.setAttribute('data-phase', phase)
+      if (error) {
+        element.setAttribute('data-error', '')
+      } else {
+        element.removeAttribute('data-error')
+      }
       if (disabled) {
         element.setAttribute('aria-disabled', 'true')
         element.setAttribute('data-disabled', '')
@@ -538,7 +755,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
     }
 
     setDelegatedTriggerId(nextDelegatedTriggerId)
-  }, [contentId, disabled, instanceId, isOpen, phase, restoreAttr, triggerAttr])
+  }, [contentId, disabled, error, instanceId, isOpen, phase, restoreAttr, triggerAttr])
 
   React.useEffect(() => {
     syncDelegatedA11y()
@@ -668,6 +885,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
 
   const hierarchyContextValue = React.useMemo(() => ({ close }), [close])
   const labelledById = explicitTriggerId ?? delegatedTriggerId
+  const hasError = error !== null
   const revealContextValue = React.useMemo<RevealItemContextValue>(
     () => ({
       isOpen,
@@ -675,19 +893,27 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
       disabled,
       contentId,
       triggerId: labelledById,
+      error,
+      hasError,
       setLastTrigger,
       setExplicitTriggerId,
       open,
       close,
+      reportError,
+      clearError,
     }),
     [
+      clearError,
       close,
       contentId,
       disabled,
+      error,
+      hasError,
       isOpen,
       labelledById,
       open,
       phase,
+      reportError,
       setExplicitTriggerId,
       setLastTrigger,
     ],
@@ -1375,6 +1601,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
             data-reveal-scope
             data-state={isOpen ? 'open' : 'closed'}
             data-phase={phase}
+            data-error={error ? '' : undefined}
             data-disabled={disabled ? '' : undefined}
           >
             <motion.div
@@ -1382,6 +1609,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
               className="relative z-10"
               data-state={isOpen ? 'open' : 'closed'}
               data-phase={phase}
+              data-error={error ? '' : undefined}
               animate={
                 magicMotion && !prefersReducedMotion
                   ? { y: isOpen ? -parallaxOffset : 0 }
@@ -1390,6 +1618,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
               transition={magicMotion ? shellTransition : undefined}
             >
               {topRegion}
+              {error ? <ErrorBadge /> : null}
             </motion.div>
 
             {shouldRenderContent ? (
@@ -1402,6 +1631,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
                 aria-hidden={!isContentVisible ? true : undefined}
                 data-state={isOpen ? 'open' : 'closed'}
                 data-phase={phase}
+                data-error={error ? '' : undefined}
                 initial={phase === 'open' ? false : contentHiddenStyles}
                 animate={isContentVisible ? contentVisibleStyles : contentHiddenStyles}
                 transition={contentTransition}
@@ -1419,8 +1649,13 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
                         phase,
                         contentId,
                         triggerId: labelledById,
+                        error,
+                        hasError,
+                        reportError,
+                        clearError,
                       })
                     : resolvedContent}
+                  {error ? <ErrorBanner error={error} /> : null}
                 </motion.div>
               </motion.div>
             ) : null}
@@ -1430,6 +1665,7 @@ const RevealPanelBase = React.forwardRef<HTMLDivElement, RevealPanelProps>(funct
               className="relative z-10"
               data-state={isOpen ? 'open' : 'closed'}
               data-phase={phase}
+              data-error={error ? '' : undefined}
               animate={
                 magicMotion && !prefersReducedMotion
                   ? { y: isOpen ? parallaxOffset : 0 }

@@ -90,6 +90,37 @@ const controlledSnippet = `function InlineStack() {
   )
 }`
 
+const errorHandlingSnippet = `function SaveForm() {
+  return (
+    <RevealPanel
+      onError={(error) => trackError(error.message)}
+      content={({ close, reportError }) => (
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault()
+            const response = await fetch('/api/save', { method: 'POST' })
+            if (!response.ok) {
+              reportError((await response.json()).message)
+              return
+            }
+            close()
+          }}
+        >
+          <input name="title" placeholder="Title" />
+          <button type="submit">Save</button>
+        </form>
+      )}
+    >
+      <RevealPanel.Top>
+        <RevealTrigger>Edit</RevealTrigger>
+      </RevealPanel.Top>
+      <RevealPanel.Bottom>
+        <FooterSummary />
+      </RevealPanel.Bottom>
+    </RevealPanel>
+  )
+}`
+
 const upgradeSnippet = `// Before
 import { RevealSplitter } from 'reveal-ui'
 
@@ -238,14 +269,15 @@ const componentRows: DocsTableRow[] = [
   {
     component: '`useRevealPanelState()`',
     notes: 'Works anywhere inside a `RevealPanel` subtree.',
-    purpose: 'Exposes `phase`, `isOpen`, `open`, `close`, and IDs without prop drilling.',
+    purpose:
+      'Exposes `phase`, `isOpen`, `open`, `close`, error state, and report/clear actions without prop drilling.',
   },
 ] as const
 
 const controlPropRows: DocsTableRow[] = [
   {
     details:
-      'Node or render function receiving `open`, `close`, `isOpen`, `phase`, `contentId`, and `triggerId`.',
+      'Node or render function receiving `open`, `close`, `isOpen`, `phase`, `contentId`, `triggerId`, `error`, `hasError`, `reportError`, and `clearError`.',
     prop: '`content`',
     type: '`ReactNode | (renderProps) => ReactNode`',
   },
@@ -317,6 +349,23 @@ const controlPropRows: DocsTableRow[] = [
     details: 'Labels the revealed region for assistive technologies.',
     prop: '`regionLabel`',
     type: '`string`',
+  },
+  {
+    details:
+      'Controlled error shown in the revealed region and header badge; accepts strings, `Error` instances, or `RevealError` objects.',
+    prop: '`error`',
+    type: '`RevealError | Error | string | null`',
+  },
+  {
+    details:
+      'Notified whenever an error is reported to the panel, so side-effect failures are never silent.',
+    prop: '`onError`',
+    type: '`(error: RevealError) => void | Promise<void>`',
+  },
+  {
+    details: 'Change handler for controlled `error` usage.',
+    prop: '`onErrorChange`',
+    type: '`(error: RevealError | null) => void`',
   },
 ] as const
 
@@ -411,6 +460,27 @@ const renderPropRows: DocsTableRow[] = [
     field: '`triggerId`',
     value: '`string | undefined`',
   },
+  {
+    details: 'Normalized error currently shown by the panel, or `null` when the panel is healthy.',
+    field: '`error`',
+    value: '`RevealError | null`',
+  },
+  {
+    details: 'Whether the panel is currently in an error state.',
+    field: '`hasError`',
+    value: '`boolean`',
+  },
+  {
+    details:
+      'Reports a backend or side-effect failure; the panel stays open, shows the error banner, and adds `data-error` state.',
+    field: '`reportError(error)`',
+    value: 'Function',
+  },
+  {
+    details: 'Clears the current error and its visual state.',
+    field: '`clearError()`',
+    value: 'Function',
+  },
 ] as const
 
 const phaseRows: DocsTableRow[] = [
@@ -460,6 +530,11 @@ const accessibilityRows: DocsTableRow[] = [
     details:
       '`RevealTrigger` and `RevealClose` expose `data-state`, `data-phase`, and `data-disabled` for styling and inspection.',
     area: 'State data attributes',
+  },
+  {
+    details:
+      'Reported errors add `data-error` across the panel, render a `role="alert"` banner at the bottom of the revealed content, and a red header badge so failing cards stand out in a stack.',
+    area: 'Error state',
   },
   {
     details:
@@ -917,6 +992,32 @@ function DocsPageContent({ pageId }: { pageId: DocsPageId }) {
                 </p>
               </CardContent>
             </Card>
+          </div>
+        </DocsSectionBlock>
+
+        <DocsSectionBlock
+          description="Backend calls and form actions fail. `reportError` keeps the panel open, shows the failure at the bottom of the revealed content, and marks the panel so a stack of reveal cards surfaces which one failed."
+          id="docs-behavior-error-handling"
+          title="Error handling"
+        >
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="space-y-4">
+              <div className="rounded-md bg-background/80 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Call <InlineCode>{'reportError(message)'}</InlineCode> from the revealed form when a
+                side effect fails. The panel never closes itself because of an error; the submit
+                handler decides when to close.
+              </div>
+              <div className="rounded-md bg-background/80 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                The message renders in a <InlineCode>role="alert"</InlineCode> banner at the bottom
+                of the revealed content, and a red header badge marks the panel.
+              </div>
+              <div className="rounded-md bg-background/80 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Every region gets <InlineCode>data-error</InlineCode> while an error is active, and
+                `onError` is notified so failures are never silent. If `onClose` rejects, the
+                rejection becomes the panel error.
+              </div>
+            </div>
+            <CodeSnippet code={errorHandlingSnippet} />
           </div>
         </DocsSectionBlock>
 

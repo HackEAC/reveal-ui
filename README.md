@@ -156,7 +156,7 @@ function StatusLine({ phase }: { phase: string }) {
 | `RevealGroup` | Coordinates sibling exclusivity for single-open stacks |
 | `RevealTrigger` | Explicit trigger with `aria-expanded`, `aria-controls`, and state attributes |
 | `RevealClose` | Explicit close control that restores focus to the last trigger by default |
-| `useRevealPanelState()` | Reads `phase`, `isOpen`, IDs, and open/close actions anywhere under a panel |
+| `useRevealPanelState()` | Reads `phase`, `isOpen`, IDs, error state, and open/close/report actions anywhere under a panel |
 
 ## RevealPanel Props
 
@@ -178,6 +178,9 @@ function StatusLine({ phase }: { phase: string }) {
 | `containTriggers` | `boolean` | Scopes delegated triggers to the current panel |
 | `restoreFocusOnClose` | `boolean` | Returns focus to the last trigger when closing |
 | `regionLabel` | `string` | Accessible label for the revealed region |
+| `error` | <code>RevealError &#124; Error &#124; string &#124; null</code> | Controlled error shown in the revealed region and header badge |
+| `onError` | <code>(error: RevealError) =&gt; void &#124; Promise&lt;void&gt;</code> | Notified whenever an error is reported to the panel |
+| `onErrorChange` | `(error: RevealError | null) => void` | Change handler for controlled error usage |
 
 ### Scroll and motion props
 
@@ -207,6 +210,66 @@ function StatusLine({ phase }: { phase: string }) {
 | `phase` | <code>'closed' &#124; 'opening' &#124; 'open' &#124; 'closing'</code> | Current lifecycle phase |
 | `contentId` | `string` | Stable ID for the revealed region |
 | `triggerId` | <code>string &#124; undefined</code> | Stable ID for the active trigger when one exists |
+| `error` | <code>RevealError &#124; null</code> | Normalized error currently shown by the panel |
+| `hasError` | `boolean` | Whether the panel is in an error state |
+| `reportError(error)` | `(error: unknown) => void` | Reports a backend or side-effect error to the panel |
+| `clearError()` | `() => void` | Clears the current error and its visual state |
+
+## Error Handling
+
+Forms and actions inside the revealed region often call the backend. When those calls fail, `reportError()` keeps the panel open, shows the failure at the bottom of the revealed content, and marks the whole panel with an error state so a stack of reveal cards can surface which one failed.
+
+```tsx
+<RevealPanel
+  onError={(error) => console.error('Panel save failed:', error.message)}
+  content={({ close, reportError }) => (
+    <form
+      onSubmit={async (event) => {
+        event.preventDefault()
+        const response = await fetch('/api/save', { method: 'POST' })
+        if (!response.ok) {
+          const body = await response.json()
+          reportError(body.message)
+          return
+        }
+        close()
+      }}
+    >
+      {/* form fields */}
+    </form>
+  )}
+>
+  <RevealPanel.Top>…</RevealPanel.Top>
+  <RevealPanel.Bottom>…</RevealPanel.Bottom>
+</RevealPanel>
+```
+
+### What an error does
+
+| Behavior | Detail |
+| --- | --- |
+| Stays open | The panel never closes itself because of an error; the submit handler decides when to close |
+| Error banner | A `role="alert"` banner with the backend message renders at the bottom of the revealed content |
+| Header badge | A red circle with a white cross renders in the top-right of the top region |
+| State attributes | `data-error` is set on the scope, top region, revealed content, bottom region, and triggers |
+| `onClose` rejections | If `onClose` rejects, the panel stays open and the rejection becomes the panel error |
+| Controlled errors | Pass `error` to drive the error state from outside; `onErrorChange` mirrors changes |
+| Clearing | `clearError()` or closing the panel removes the error |
+
+### Error shape
+
+`reportError` accepts any value and normalizes it to a `RevealError`:
+
+```ts
+type RevealError = {
+  message: string
+  title?: string
+  code?: string | number
+  cause?: unknown
+}
+```
+
+Strings become `{ message }`, `Error` instances become `{ message, cause }`, and objects with a string `message` or `error` field are picked up directly.
 
 ### `close()` options
 
@@ -222,6 +285,7 @@ function StatusLine({ phase }: { phase: string }) {
 | Lifecycle phases | `closed`, `opening`, `open`, and `closing` are exposed through render props and `useRevealPanelState()` |
 | Region semantics | The revealed subtree uses `role="region"` and binds to the active trigger when possible |
 | Explicit controls | `RevealTrigger` and `RevealClose` expose `data-state`, `data-phase`, and `data-disabled` |
+| Error state | Reported errors add `data-error` everywhere and render a `role="alert"` banner and header badge |
 | Delegated controls | Non-button delegated triggers receive button semantics, focusability, and ARIA wiring |
 | Focus return | Closing restores focus to the last trigger unless disabled globally or per close call |
 | Reduced motion | Motion and coordinated scroll timing simplify automatically in reduced-motion environments |
