@@ -211,39 +211,56 @@ function PanelStatus() {
 
 ### RevealPanel props
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `children` | `ReactNode` | — | Persistent top and bottom regions |
-| `content` | `ReactNode \| (state) => ReactNode` | — | Content revealed between the regions |
-| `revealContent` | Same as `content` | — | Deprecated alias for `content` |
-| `className` | `string` | — | Class name for the panel scope |
-| `keepMounted` | `boolean` | `false` | Keeps closed content mounted and hidden |
-| `defaultOpen` | `boolean` | `false` | Initial uncontrolled open state |
-| `open` | `boolean` | — | Controlled open state |
-| `onOpenChange` | `(open: boolean) => void` | — | Receives open-state requests |
-| `onClose` | `(options?: CloseOptions) => void \| Promise<void>` | — | Runs before closing; rejection becomes a panel error |
-| `disabled` | `boolean` | `false` | Disables panel controls |
-| `error` | `RevealError \| Error \| string \| null` | — | Controlled error state |
-| `onErrorChange` | `(error: RevealError \| null) => void` | — | Receives normalized error changes |
-| `onError` | `(error: RevealError) => void \| Promise<void>` | — | Runs whenever an error is reported |
-| `restoreFocusOnClose` | `boolean` | `true` | Returns focus to the last trigger after closing |
-| `regionLabel` | `string` | `'Revealed content'` | Fallback accessible name for the content region |
-| `closeSiblings` | `boolean` | Group default | Overrides sibling-closing behavior |
-| `containTriggers` | `boolean` | `true` | Prevents delegated controls from affecting nested panels |
-| `triggerAttr` | `string` | `'data-trigger-collapse'` | Attribute used by delegated open controls |
-| `restoreAttr` | `string` | `'data-trigger-restore'` | Attribute used by delegated close controls |
-| `autoSplit` | `boolean` | `false` | Infers top and bottom from unmarked children |
-| `scrollOnOpen` | `boolean` | `false` | Scrolls the panel into view when opened |
-| `restoreScrollOnClose` | `boolean` | `false` | Restores the captured scroll position after closing |
-| `scrollContainer` | `HTMLElement \| null \| (() => HTMLElement \| null)` | Nearest scroller | Sets the primary scroll target |
-| `scrollCascade` | `Array<{ container; offset?; mode?; padding? }>` | `[]` | Coordinates additional scroll containers |
-| `scrollOffset` | `number` | `0` | Offset from the scroll target's top edge |
-| `scrollDurationMs` | `number` | `450` | Scroll animation duration |
-| `scrollSpacerTarget` | `'self' \| 'container' \| 'none'` | `'self'` | Chooses where temporary scroll space is added |
-| `scrollOvershootPx` | `number` | `12` | Overshoot used during animated alignment |
-| `magicMotion` | `boolean` | `false` | Enables layout and parallax transitions |
-| `parallaxOffset` | `number` | `10` | Top and bottom translation distance |
-| `revealBlurPx` | `number` | `6` | Content blur during transitions |
+#### Composition
+
+| Prop | Description and type | Default |
+| --- | --- | --- |
+| `children` | Persistent top and bottom regions.<br>Type: `ReactNode` | Required |
+| `content` | Content revealed between the persistent regions.<br>Type: `ReactNode \| (state) => ReactNode` | — |
+| `revealContent` | Deprecated compatibility alias for `content`.<br>Type: same as `content` | — |
+| `className` | Class name applied to the panel scope.<br>Type: `string` | — |
+| `keepMounted` | Keeps closed content mounted and hidden so local state is retained.<br>Type: `boolean` | `false` |
+| `autoSplit` | Infers top and bottom regions from unmarked children.<br>Type: `boolean` | `false` |
+
+#### State and behavior
+
+| Prop | Description and type | Default |
+| --- | --- | --- |
+| `defaultOpen` | Sets the initial state of an uncontrolled panel.<br>Type: `boolean` | `false` |
+| `open` | Controls the resolved open state.<br>Type: `boolean` | — |
+| `onOpenChange` | Receives requests to change the open state.<br>Type: `(open: boolean) => void` | — |
+| `onClose` | Runs before closing. A returned promise delays the close; rejection keeps the panel open and becomes a panel error.<br>Type: `(options?: CloseOptions) => void \| Promise<void>` | — |
+| `disabled` | Disables panel controls.<br>Type: `boolean` | `false` |
+| `restoreFocusOnClose` | Returns focus to the last trigger after closing.<br>Type: `boolean` | `true` |
+| `regionLabel` | Supplies a fallback accessible name when no trigger labels the content region.<br>Type: `string` | `'Revealed content'` |
+| `closeSiblings` | Overrides whether opening this panel closes panels in the nearest group.<br>Type: `boolean` | Group setting, otherwise `false` |
+| `containTriggers` | Prevents delegated controls from affecting nested panels.<br>Type: `boolean` | `true` |
+| `triggerAttr` | Names the attribute used by delegated open controls.<br>Type: `string` | `'data-trigger-collapse'` |
+| `restoreAttr` | Names the attribute used by delegated close controls.<br>Type: `string` | `'data-trigger-restore'` |
+
+#### Error handling
+
+| Prop | Description and type | Default |
+| --- | --- | --- |
+| `error` | Controls the normalized error shown by the panel.<br>Type: `RevealError \| Error \| string \| null` | — |
+| `onErrorChange` | Receives normalized error changes, including `null` when cleared.<br>Type: `(error: RevealError \| null) => void` | — |
+| `onError` | Runs whenever `reportError()` or a rejected `onClose` reports an error.<br>Type: `(error: RevealError) => void \| Promise<void>` | — |
+
+#### Scroll and motion
+
+| Prop | Description and type | Default |
+| --- | --- | --- |
+| `scrollOnOpen` | Scrolls the panel into view when it opens.<br>Type: `boolean` | `false` |
+| `restoreScrollOnClose` | Restores the captured scroll position after closing.<br>Type: `boolean` | `false` |
+| `scrollContainer` | Sets the primary scroll target directly or through a resolver.<br>Type: `HTMLElement \| null \| (() => HTMLElement \| null)` | Nearest scroller |
+| `scrollCascade` | Coordinates additional scroll containers.<br>Type: `Array<{ container; offset?; mode?; padding? }>` | `[]` |
+| `scrollOffset` | Sets the offset from the scroll target's top edge.<br>Type: `number` | `0` |
+| `scrollDurationMs` | Sets the scroll animation duration in milliseconds.<br>Type: `number` | `450` |
+| `scrollSpacerTarget` | Chooses where temporary scroll space is added.<br>Type: `'self' \| 'container' \| 'none'` | `'self'` |
+| `scrollOvershootPx` | Sets the overshoot used during animated alignment.<br>Type: `number` | `12` |
+| `magicMotion` | Enables layout and parallax transitions.<br>Type: `boolean` | `false` |
+| `parallaxOffset` | Sets the top and bottom translation distance in pixels.<br>Type: `number` | `10` |
+| `revealBlurPx` | Sets the content blur used during transitions.<br>Type: `number` | `6` |
 
 ### Render props and hook state
 
