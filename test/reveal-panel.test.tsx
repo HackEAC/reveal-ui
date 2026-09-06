@@ -83,6 +83,17 @@ function advanceTimers(ms: number) {
   })
 }
 
+function createDeferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve
+    reject = innerReject
+  })
+
+  return { promise, reject, resolve }
+}
+
 describe('RevealPanel', () => {
   it('reveals and restores content through delegated trigger attributes', async () => {
     const user = userEvent.setup()
@@ -302,6 +313,179 @@ describe('RevealPanel', () => {
     })
 
     expect(trigger).not.toHaveFocus()
+  })
+
+  it('waits for an async onClose callback before closing', async () => {
+    const user = userEvent.setup()
+    const deferred = createDeferred<void>()
+    const onClose = jest.fn(() => deferred.promise)
+
+    const { container } = render(
+      <RevealPanel
+        onClose={onClose}
+        content={
+          <div>
+            <p>Async close content</p>
+            <RevealClose>Close async</RevealClose>
+          </div>
+        }
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open async</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open async' }))
+    await user.click(screen.getByRole('button', { name: 'Close async' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Async close content')).toBeInTheDocument()
+    expect(container.querySelector('[data-reveal-scope]')).toHaveAttribute('data-state', 'open')
+
+    await act(async () => {
+      deferred.resolve()
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Async close content')).not.toBeInTheDocument()
+    })
+  })
+
+  it('ignores repeated close requests while an async onClose is pending', async () => {
+    const user = userEvent.setup()
+    const deferred = createDeferred<void>()
+    const onClose = jest.fn(() => deferred.promise)
+
+    render(
+      <RevealPanel
+        onClose={onClose}
+        content={
+          <div>
+            <p>Pending close content</p>
+            <RevealClose>Close pending</RevealClose>
+          </div>
+        }
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open pending</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending' }))
+    await user.click(screen.getByRole('button', { name: 'Close pending' }))
+    await user.click(screen.getByRole('button', { name: 'Close pending' }))
+    await user.click(screen.getByRole('button', { name: 'Close pending' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Pending close content')).toBeInTheDocument()
+
+    await act(async () => {
+      deferred.resolve()
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Pending close content')).not.toBeInTheDocument()
+    })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('closes correctly when rendered inside React StrictMode', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <React.StrictMode>
+        <RevealPanel
+          content={
+            <div>
+              <p>Strict mode content</p>
+              <RevealClose>Close strict</RevealClose>
+            </div>
+          }
+        >
+          <RevealPanel.Top>
+            <RevealTrigger>Open strict</RevealTrigger>
+          </RevealPanel.Top>
+          <RevealPanel.Bottom>
+            <div />
+          </RevealPanel.Bottom>
+        </RevealPanel>
+      </React.StrictMode>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open strict' }))
+    await user.click(screen.getByRole('button', { name: 'Close strict' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Strict mode content')).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not apply an async close completion to a reopened controlled panel', async () => {
+    const user = userEvent.setup()
+    const deferred = createDeferred<void>()
+
+    function ControlledAsyncHarness() {
+      const [open, setOpen] = React.useState(true)
+
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(false)}>
+            Force controlled close
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen controlled
+          </button>
+          <RevealPanel
+            open={open}
+            onOpenChange={setOpen}
+            onClose={() => deferred.promise}
+            content={({ reportError }) => (
+              <div>
+                <p>Controlled async content</p>
+                <RevealClose>Start async close</RevealClose>
+                <button type="button" onClick={() => reportError('New session failure')}>
+                  Report new session error
+                </button>
+              </div>
+            )}
+          >
+            <RevealPanel.Top>
+              <RevealTrigger>Open controlled async</RevealTrigger>
+            </RevealPanel.Top>
+            <RevealPanel.Bottom>
+              <div />
+            </RevealPanel.Bottom>
+          </RevealPanel>
+        </div>
+      )
+    }
+
+    const { container } = render(<ControlledAsyncHarness />)
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Start async close' }))
+    await user.click(screen.getByRole('button', { name: 'Force controlled close' }))
+    await user.click(screen.getByRole('button', { name: 'Reopen controlled' }))
+    await user.click(screen.getByRole('button', { name: 'Report new session error' }))
+
+    await act(async () => {
+      deferred.resolve()
+      await deferred.promise
+    })
+
+    expect(scope).toHaveAttribute('data-state', 'open')
+    expect(screen.getByRole('alert')).toHaveTextContent('New session failure')
   })
 
   it('restores the previous window scroll position after close when enabled', () => {
@@ -1068,6 +1252,357 @@ describe('RevealPanel', () => {
     } finally {
       jest.useRealTimers()
     }
+  })
+
+  it('reports an error through render props and reflects it across the panel', async () => {
+    const user = userEvent.setup()
+    const onError = jest.fn()
+
+    const { container } = render(
+      <RevealPanel
+        onError={onError}
+        content={({ reportError }) => (
+          <div>
+            <p>Editor content</p>
+            <button type="button" onClick={() => reportError('Backend rejected the save.')}>
+              Save
+            </button>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open editor</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Open editor' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Backend rejected the save.')
+    expect(screen.getByText('Editor content')).toBeInTheDocument()
+    expect(scope).toHaveAttribute('data-error', '')
+    expect(screen.getByRole('button', { name: 'Open editor' })).toHaveAttribute('data-error', '')
+    expect(container.querySelector('[data-reveal-error-indicator]')).not.toBeNull()
+    expect(container.querySelectorAll('[data-reveal-scope] > [data-error]')).toHaveLength(3)
+    expect(onError).toHaveBeenCalledWith({ message: 'Backend rejected the save.' })
+  })
+
+  it('preserves supported fields when normalizing structured errors', async () => {
+    const user = userEvent.setup()
+    const onError = jest.fn()
+    const messageCause = new Error('Message cause')
+    const errorCause = new Error('Error-field cause')
+
+    render(
+      <RevealPanel
+        defaultOpen
+        onError={onError}
+        content={({ reportError }) => (
+          <div>
+            <button
+              type="button"
+              onClick={() =>
+                reportError({
+                  message: 'Structured message',
+                  title: 'Message title',
+                  code: 409,
+                  cause: messageCause,
+                })
+              }
+            >
+              Report message payload
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                reportError({
+                  error: 'Structured error field',
+                  title: 'Error title',
+                  code: 'SAVE_FAILED',
+                  cause: errorCause,
+                })
+              }
+            >
+              Report error payload
+            </button>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <div />
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Report message payload' }))
+    expect(onError).toHaveBeenLastCalledWith({
+      message: 'Structured message',
+      title: 'Message title',
+      code: 409,
+      cause: messageCause,
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Report error payload' }))
+    expect(onError).toHaveBeenLastCalledWith({
+      message: 'Structured error field',
+      title: 'Error title',
+      code: 'SAVE_FAILED',
+      cause: errorCause,
+    })
+  })
+
+  it('reports and clears errors through useRevealPanelState', async () => {
+    const user = userEvent.setup()
+
+    function ErrorControls() {
+      const { error, hasError, reportError, clearError } = useRevealPanelState()
+
+      return (
+        <div>
+          <p>Hook error {hasError ? 'present' : 'none'}</p>
+          {error ? <p>Error message: {error.message}</p> : null}
+          <button type="button" onClick={() => reportError('Hook failure')}>
+            Report hook
+          </button>
+          <button type="button" onClick={clearError}>
+            Clear hook
+          </button>
+        </div>
+      )
+    }
+
+    const { container } = render(
+      <RevealPanel content={<ErrorControls />}>
+        <RevealPanel.Top>
+          <RevealTrigger>Open hook</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open hook' }))
+    await user.click(screen.getByRole('button', { name: 'Report hook' }))
+
+    expect(screen.getByText('Hook error present')).toBeInTheDocument()
+    expect(screen.getByText('Error message: Hook failure')).toBeInTheDocument()
+    expect(container.querySelector('[data-reveal-error-indicator]')).not.toBeNull()
+    expect(container.querySelector('[data-reveal-scope]')).toHaveAttribute('data-error', '')
+
+    await user.click(screen.getByRole('button', { name: 'Clear hook' }))
+
+    expect(screen.getByText('Hook error none')).toBeInTheDocument()
+    expect(screen.queryByText('Error message: Hook failure')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-reveal-error-indicator]')).toBeNull()
+    expect(container.querySelector('[data-reveal-scope]')).not.toHaveAttribute('data-error')
+  })
+
+  it('surfaces onClose rejections as errors and keeps the panel open', async () => {
+    const user = userEvent.setup()
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const deferred = createDeferred<void>()
+    const onClose = jest.fn(() => deferred.promise)
+    const onError = jest.fn()
+
+    const { container } = render(
+      <RevealPanel
+        onClose={onClose}
+        onError={onError}
+        content={
+          <div>
+            <p>Retry content</p>
+            <RevealClose>Close retry</RevealClose>
+          </div>
+        }
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open retry</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open retry' }))
+    await user.click(screen.getByRole('button', { name: 'Close retry' }))
+
+    await act(async () => {
+      deferred.reject(new Error('Save failed on the server.'))
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Save failed on the server.')
+    })
+
+    expect(screen.getByText('Retry content')).toBeInTheDocument()
+    expect(container.querySelector('[data-reveal-scope]')).toHaveAttribute('data-state', 'open')
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Save failed on the server.' }),
+    )
+
+    consoleError.mockRestore()
+  })
+
+  it('renders an error passed through the controlled error prop', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <RevealPanel
+        error={{ title: 'Update failed', message: 'Backend could not save the change.' }}
+        content={<p>Controlled error content</p>}
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open controlled error</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Open controlled error' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Update failed')
+    expect(screen.getByRole('alert')).toHaveTextContent('Backend could not save the change.')
+  })
+
+  it('clears the reported error when the panel closes', async () => {
+    const user = userEvent.setup()
+    const onErrorChange = jest.fn()
+
+    const { container } = render(
+      <RevealPanel
+        onErrorChange={onErrorChange}
+        content={({ reportError }) => (
+          <div>
+            <p>Clear on close content</p>
+            <RevealClose>Close clear</RevealClose>
+            <button type="button" onClick={() => reportError('Temporary failure')}>
+              Fail
+            </button>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <RevealTrigger>Open clear</RevealTrigger>
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Open clear' }))
+    await user.click(screen.getByRole('button', { name: 'Fail' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Temporary failure')
+    expect(scope).toHaveAttribute('data-error', '')
+
+    await user.click(screen.getByRole('button', { name: 'Close clear' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(scope).not.toHaveAttribute('data-error')
+    })
+
+    expect(onErrorChange).toHaveBeenCalledWith(null)
+  })
+
+  it('clears an uncontrolled error when controlled open state closes externally', async () => {
+    const user = userEvent.setup()
+
+    function ExternallyClosedHarness() {
+      const [open, setOpen] = React.useState(true)
+
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(false)}>
+            Close externally
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen externally
+          </button>
+          <RevealPanel
+            open={open}
+            onOpenChange={setOpen}
+            content={({ reportError }) => (
+              <button type="button" onClick={() => reportError('Transient controlled failure')}>
+                Report controlled failure
+              </button>
+            )}
+          >
+            <RevealPanel.Top>
+              <div />
+            </RevealPanel.Top>
+            <RevealPanel.Bottom>
+              <div />
+            </RevealPanel.Bottom>
+          </RevealPanel>
+        </div>
+      )
+    }
+
+    const { container } = render(<ExternallyClosedHarness />)
+    const scope = container.querySelector('[data-reveal-scope]')
+
+    await user.click(screen.getByRole('button', { name: 'Report controlled failure' }))
+    expect(scope).toHaveAttribute('data-error', '')
+
+    await user.click(screen.getByRole('button', { name: 'Close externally' }))
+    expect(scope).not.toHaveAttribute('data-error')
+
+    await user.click(screen.getByRole('button', { name: 'Reopen externally' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps the error when a controlled parent ignores a close request', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = jest.fn()
+
+    render(
+      <RevealPanel
+        open
+        onOpenChange={onOpenChange}
+        content={({ reportError }) => (
+          <div>
+            <button type="button" onClick={() => reportError('Still open failure')}>
+              Report stubborn failure
+            </button>
+            <RevealClose>Request stubborn close</RevealClose>
+          </div>
+        )}
+      >
+        <RevealPanel.Top>
+          <div />
+        </RevealPanel.Top>
+        <RevealPanel.Bottom>
+          <div />
+        </RevealPanel.Bottom>
+      </RevealPanel>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Report stubborn failure' }))
+    await user.click(screen.getByRole('button', { name: 'Request stubborn close' }))
+
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.getByRole('alert')).toHaveTextContent('Still open failure')
   })
 
   it('exports only the supported public package surface', () => {

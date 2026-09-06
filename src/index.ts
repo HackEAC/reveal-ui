@@ -3,6 +3,7 @@
 export type {
   CloseOptions,
   RevealContentProp,
+  RevealError,
   RevealPanelProps,
   RevealPanelState,
   RevealPhase,

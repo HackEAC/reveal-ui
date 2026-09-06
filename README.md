@@ -6,40 +6,21 @@
   />
 </p>
 
-# reveal-ui
+<h1 align="center">reveal-ui</h1>
 
 <p align="center">
-  Persistent-summary disclosure for inline reveal editors, expanding cards, and nested reveal flows in React.
+  Accessible React primitives for revealing rich content between a persistent header and footer.
 </p>
 
 <p align="center">
-  <a href="https://github.com/HackEAC/reveal-ui/actions/workflows/ci.yml">
-    <img
-      alt="Build status"
-      src="https://github.com/HackEAC/reveal-ui/actions/workflows/ci.yml/badge.svg?branch=main"
-    />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://hackeac.github.io/reveal-ui/">Docs</a>
+  <a href="https://hackeac.github.io/reveal-ui/docs">Docs</a>
   ·
-  <a href="https://hackeac.github.io/reveal-ui/#examples">Examples</a>
+  <a href="https://hackeac.github.io/reveal-ui/examples">Examples</a>
   ·
-  <a href="https://github.com/HackEAC/reveal-ui/discussions">Discussions</a>
+  <a href="https://github.com/HackEAC/reveal-ui">GitHub</a>
 </p>
 
-`reveal-ui` is a React library for cases where a trigger-plus-panel pattern is too shallow. It keeps the top summary and bottom context mounted, then reveals richer content between them so users can inspect, compare, edit, or confirm without losing the surrounding workflow.
-
-It is a good fit for inline editors, stacked cards, pricing or plan comparisons, nested edit flows, and chooser-style UIs where a short label is not enough to make the decision.
-
-<p align="center">
-  <img
-    alt="Animated reveal-ui demo showing persistent-summary disclosure in action"
-    src="./assets/reveal-ui-v0-0-2.gif"
-    width="960"
-  />
-</p>
+Use `reveal-ui` for inline editors, expanding cards, comparison flows, and nested tasks where the surrounding context should remain visible.
 
 ## Install
 
@@ -47,222 +28,298 @@ It is a good fit for inline editors, stacked cards, pricing or plan comparisons,
 npm install reveal-ui motion react react-dom
 ```
 
-| Package | Required version | Notes |
-| --- | --- | --- |
-| `react` | `^19` | Peer dependency |
-| `react-dom` | `^19` | Peer dependency |
-| `motion` | `^12.40.0` | Needed only when you enable `magicMotion` |
+Requires React `^19.0.0` and Motion `^12.40.0`.
 
-## When To Use It
-
-| Good fit | Skip it when |
-| --- | --- |
-| The summary should stay visible while detail opens inline | A normal accordion already preserves enough context |
-| Users need multiple attributes before choosing or confirming | The interaction should block the app like a true modal |
-| Nested flows need close propagation without modal chains | The content should unmount immediately with no phase-aware exit |
-| Card stacks should behave like a single-open chooser | The detail is small enough for a plain tooltip or label |
-
-## Demo Patterns
-
-- Inline editor: keep the current summary visible while a richer form opens between top and bottom regions.
-- Plan comparison: compare pricing, risk, and rollout details without collapsing the decision into a single label.
-- Nested edit flow: open a deeper step only when needed and propagate close events back out when the task is complete.
-
-Try the live demos at https://hackeac.github.io/reveal-ui/#examples
-
-## Quick Start
+## Quick start
 
 ```tsx
-import * as React from 'react'
-import {
-  RevealClose,
-  RevealPanel,
-  RevealTrigger,
-  useRevealPanelState,
-} from 'reveal-ui'
+import { RevealClose, RevealPanel, RevealTrigger } from 'reveal-ui'
 
-export function AccountRevealCard() {
+export function ProfileCard() {
   return (
     <RevealPanel
-      keepMounted
-      magicMotion
-      restoreScrollOnClose
-      scrollOnOpen
-      content={({ phase }) => (
-        <div className="border-t border-slate-200 px-5 py-4">
-          <StatusLine phase={phase} />
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-[0.28em] text-slate-500">{phase}</span>
-            <RevealClose className="rounded-full border px-3 py-1.5 text-sm text-slate-700">
-              Done
-            </RevealClose>
-          </div>
+      content={
+        <div>
+          <label>
+            Display name
+            <input name="displayName" />
+          </label>
+          <RevealClose>Done</RevealClose>
         </div>
-      )}
+      }
     >
       <RevealPanel.Top>
-        <div className="rounded-t-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Account</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">Operating profile</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Persistent summary disclosure for inline editing.
-              </p>
-            </div>
-            <RevealTrigger className="rounded-full bg-slate-950 px-4 py-2 text-sm text-white">
-              Edit
-            </RevealTrigger>
-          </div>
-        </div>
+        <h2>Profile</h2>
+        <RevealTrigger>Edit</RevealTrigger>
       </RevealPanel.Top>
 
       <RevealPanel.Bottom>
-        <div className="rounded-b-3xl border border-t-0 border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
-          Footer actions, metrics, or hints can stay visible below the reveal.
-        </div>
+        <p>Your public account details.</p>
       </RevealPanel.Bottom>
     </RevealPanel>
   )
 }
+```
 
-function StatusLine({ phase }: { phase: string }) {
-  const panel = useRevealPanelState()
+`RevealPanel.Top` and `RevealPanel.Bottom` stay mounted. The `content` section opens between them and unmounts after its closing transition.
 
-  React.useEffect(() => {
-    if (panel.phase !== 'opening' && panel.phase !== 'open') return
-    const controller = new AbortController()
-    fetch('/api/preview', { signal: controller.signal })
-    return () => controller.abort()
-  }, [panel.phase])
+## Errors and async closing
 
-  return <p className="text-sm text-slate-700">Panel phase: {panel.phase ?? phase}</p>
+`onClose` can return a promise. The panel waits for it before closing, ignores repeated close requests while it is pending, and stays open if it rejects. Rejections are normalized and displayed as panel errors.
+
+```tsx
+import * as React from 'react'
+import { RevealClose, RevealPanel, RevealTrigger } from 'reveal-ui'
+
+export function ProfileEditor() {
+  const [name, setName] = React.useState('Ada')
+
+  return (
+    <RevealPanel
+      onClose={async () => {
+        const response = await fetch('/api/profile', {
+          method: 'POST',
+          body: JSON.stringify({ name }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Could not save the profile.')
+        }
+      }}
+      onError={(error) => console.error(error)}
+      content={({ clearError }) => (
+        <div>
+          <label>
+            Display name
+            <input
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value)
+                clearError()
+              }}
+            />
+          </label>
+          <RevealClose>Save</RevealClose>
+        </div>
+      )}
+    >
+      <RevealPanel.Top>
+        <h2>{name}</h2>
+        <RevealTrigger>Edit</RevealTrigger>
+      </RevealPanel.Top>
+      <RevealPanel.Bottom>Profile settings</RevealPanel.Bottom>
+    </RevealPanel>
+  )
 }
 ```
 
-## Composition Model
+For failures outside `onClose`, call `reportError(value)` from the content render props or `useRevealPanelState()`. Call `clearError()` to dismiss the current error.
 
-| Part | What stays mounted | What it is for |
-| --- | --- | --- |
-| `RevealPanel.Top` | Always | Summary, headline, trigger, current status |
-| `content` | Opens and closes | The richer inline detail, editor, form, or comparison content |
-| `RevealPanel.Bottom` | Always | Footer actions, metrics, hints, and surrounding context |
+An active error:
 
-## Exports
+- keeps the panel open;
+- renders a `role="alert"` banner in the revealed content;
+- displays a decorative error badge in the header;
+- adds `data-error` to the panel regions and controls;
+- clears when the panel closes successfully.
+
+Strings, `Error` instances, and objects with a string `message` or `error` field are supported. Structured errors preserve `title`, `code`, and `cause` when provided.
+
+```ts
+type RevealError = {
+  message: string
+  title?: string
+  code?: string | number
+  cause?: unknown
+}
+```
+
+Pass `error` and `onErrorChange` to control the error from outside the panel.
+
+## Controlled state
+
+```tsx
+const [open, setOpen] = React.useState(false)
+const [error, setError] = React.useState<RevealError | null>(null)
+
+<RevealPanel
+  open={open}
+  onOpenChange={setOpen}
+  error={error}
+  onErrorChange={setError}
+  content={<Editor />}
+>
+  <RevealPanel.Top>
+    <RevealTrigger>Edit</RevealTrigger>
+  </RevealPanel.Top>
+  <RevealPanel.Bottom>Summary</RevealPanel.Bottom>
+</RevealPanel>
+```
+
+Errors clear only after the resolved open state changes to closed. If a controlled parent ignores `onOpenChange(false)`, the panel remains open and keeps its error.
+
+## Groups and nested panels
+
+Wrap sibling panels in `RevealGroup` to close the others when one opens:
+
+```tsx
+<RevealGroup>
+  <RevealPanel content={<FirstDetails />}>...</RevealPanel>
+  <RevealPanel content={<SecondDetails />}>...</RevealPanel>
+</RevealGroup>
+```
+
+If a sibling has an async `onClose`, it remains open until that callback resolves.
+
+Inside a nested panel, use `close({ propagate: true })` to close the current panel and its parent after a successful close.
+
+## Reading panel state
+
+The `content` render function and `useRevealPanelState()` share the same core state and actions:
+
+```tsx
+function PanelStatus() {
+  const { phase, hasError } = useRevealPanelState()
+
+  return <p>{hasError ? 'Action failed' : `Panel is ${phase}`}</p>
+}
+```
+
+`useRevealPanelState()` must be called below a `RevealPanel`.
+
+## API
+
+### Exports
 
 | Export | Purpose |
 | --- | --- |
-| `RevealPanel` | Primary persistent-summary disclosure primitive |
-| `RevealGroup` | Coordinates sibling exclusivity for single-open stacks |
-| `RevealTrigger` | Explicit trigger with `aria-expanded`, `aria-controls`, and state attributes |
-| `RevealClose` | Explicit close control that restores focus to the last trigger by default |
-| `useRevealPanelState()` | Reads `phase`, `isOpen`, IDs, and open/close actions anywhere under a panel |
+| `RevealPanel` | Main disclosure primitive |
+| `RevealGroup` | Coordinates sibling panels |
+| `RevealTrigger` | Opens its nearest panel |
+| `RevealClose` | Closes its nearest panel |
+| `useRevealPanelState()` | Reads panel state and actions |
+| `CloseOptions` | Options accepted by `close()` |
+| `RevealError` | Normalized panel error |
+| `RevealPanelProps` | Props for `RevealPanel` |
+| `RevealPanelState` | Value returned by the state hook |
+| `RevealPhase` | `'closed' \| 'opening' \| 'open' \| 'closing'` |
+| `RevealRenderProps` | Value passed to a content render function |
+| `RevealContentProp` | Accepted shape of the `content` prop |
+| `RevealTriggerProps` | Props accepted by trigger and close controls |
 
-## RevealPanel Props
+`RevealPanel` also exposes `Top`, `Bottom`, `Trigger`, and `Close` as static composition helpers. `RevealPanel.Trigger` and `RevealPanel.Close` are aliases for the standalone controls.
 
-### Core props
+### RevealPanel props
 
-| Prop | Type | What it does |
+#### Composition
+
+| Prop | Description and type | Default |
 | --- | --- | --- |
-| `content` | <code>ReactNode &#124; (renderProps) =&gt; ReactNode</code> | Primary revealed content slot |
-| `revealContent` | <code>ReactNode &#124; (renderProps) =&gt; ReactNode</code> | Compatibility alias for `content` |
-| `keepMounted` | `boolean` | Keeps the revealed subtree mounted through `closed` |
-| `defaultOpen` | `boolean` | Initial state for uncontrolled usage |
-| `open` | `boolean` | Controlled open state |
-| `onOpenChange` | `(open: boolean) => void` | Change handler for controlled usage |
-| `disabled` | `boolean` | Disables opening and closing interactions |
-| `triggerAttr` | `string` | Attribute name used for delegated trigger nodes |
-| `restoreAttr` | `string` | Attribute name used for delegated restore/close nodes |
-| `autoSplit` | `boolean` | Splits children automatically when explicit top/bottom markers are absent |
-| `closeSiblings` | `boolean` | Closes sibling panels when this one opens |
-| `containTriggers` | `boolean` | Scopes delegated triggers to the current panel |
-| `restoreFocusOnClose` | `boolean` | Returns focus to the last trigger when closing |
-| `regionLabel` | `string` | Accessible label for the revealed region |
+| `children` | Persistent top and bottom regions.<br>Type: `ReactNode` | Required |
+| `content` | Content revealed between the persistent regions.<br>Type: `ReactNode \| (state) => ReactNode` | — |
+| `revealContent` | Deprecated compatibility alias for `content`.<br>Type: same as `content` | — |
+| `className` | Class name applied to the panel scope.<br>Type: `string` | — |
+| `keepMounted` | Keeps closed content mounted and hidden so local state is retained.<br>Type: `boolean` | `false` |
+| `autoSplit` | Infers top and bottom regions from unmarked children.<br>Type: `boolean` | `false` |
 
-### Scroll and motion props
+#### State and behavior
 
-| Prop | Type | What it does |
+| Prop | Description and type | Default |
 | --- | --- | --- |
-| `scrollOnOpen` | `boolean` | Scrolls the panel into view when it opens |
-| `restoreScrollOnClose` | `boolean` | Restores the primary scroll target captured during open as the panel closes |
-| `scrollContainer` | <code>HTMLElement &#124; null &#124; (() =&gt; HTMLElement &#124; null)</code> | Primary scroll target |
-| `scrollCascade` | `Array<{ container; offset?; mode?; padding? }>` | Optional outer container alignment steps during open-time scroll alignment |
-| `scrollOffset` | `number` | Top offset used during automatic scroll alignment |
-| `scrollDurationMs` | `number` | Scroll animation timing |
-| `magicMotion` | `boolean` | Enables `motion/react` layout transitions |
-| `parallaxOffset` | `number` | Controls reveal translation depth |
-| `revealBlurPx` | `number` | Applies blur during motion-enabled transitions |
-| `scrollOvershootPx` | `number` | Adds overshoot during automatic scroll alignment |
-| `scrollSpacerTarget` | <code>'self' &#124; 'container' &#124; 'none'</code> | Chooses where extra scroll space is attached |
+| `defaultOpen` | Sets the initial state of an uncontrolled panel.<br>Type: `boolean` | `false` |
+| `open` | Controls the resolved open state.<br>Type: `boolean` | — |
+| `onOpenChange` | Receives requests to change the open state.<br>Type: `(open: boolean) => void` | — |
+| `onClose` | Runs before closing. A returned promise delays the close; rejection keeps the panel open and becomes a panel error.<br>Type: `(options?: CloseOptions) => void \| Promise<void>` | — |
+| `disabled` | Disables panel controls.<br>Type: `boolean` | `false` |
+| `restoreFocusOnClose` | Returns focus to the last trigger after closing.<br>Type: `boolean` | `true` |
+| `regionLabel` | Supplies a fallback accessible name when no trigger labels the content region.<br>Type: `string` | `'Revealed content'` |
+| `closeSiblings` | Overrides whether opening this panel closes panels in the nearest group.<br>Type: `boolean` | Group setting, otherwise `false` |
+| `containTriggers` | Prevents delegated controls from affecting nested panels.<br>Type: `boolean` | `true` |
+| `triggerAttr` | Names the attribute used by delegated open controls.<br>Type: `string` | `'data-trigger-collapse'` |
+| `restoreAttr` | Names the attribute used by delegated close controls.<br>Type: `string` | `'data-trigger-restore'` |
 
-## Render Props And Close Options
+#### Error handling
 
-### `content` render props
-
-| Field | Type | What it does |
+| Prop | Description and type | Default |
 | --- | --- | --- |
-| `open()` | `() => void` | Opens the panel from inside the subtree |
-| `close(options?)` | `(options?: CloseOptions) => void` | Closes the panel and can optionally propagate or skip focus restore |
-| `isOpen` | `boolean` | Current open state |
-| `phase` | <code>'closed' &#124; 'opening' &#124; 'open' &#124; 'closing'</code> | Current lifecycle phase |
-| `contentId` | `string` | Stable ID for the revealed region |
-| `triggerId` | <code>string &#124; undefined</code> | Stable ID for the active trigger when one exists |
+| `error` | Controls the normalized error shown by the panel.<br>Type: `RevealError \| Error \| string \| null` | — |
+| `onErrorChange` | Receives normalized error changes, including `null` when cleared.<br>Type: `(error: RevealError \| null) => void` | — |
+| `onError` | Runs whenever `reportError()` or a rejected `onClose` reports an error.<br>Type: `(error: RevealError) => void \| Promise<void>` | — |
 
-### `close()` options
+#### Scroll and motion
 
-| Option | Type | Effect |
+| Prop | Description and type | Default |
 | --- | --- | --- |
-| `propagate` | `boolean` | Bubbles the close request to outer panels |
-| `restoreFocus` | `boolean` | Overrides focus restoration for this close call |
+| `scrollOnOpen` | Scrolls the panel into view when it opens.<br>Type: `boolean` | `false` |
+| `restoreScrollOnClose` | Restores the captured scroll position after closing.<br>Type: `boolean` | `false` |
+| `scrollContainer` | Sets the primary scroll target directly or through a resolver.<br>Type: `HTMLElement \| null \| (() => HTMLElement \| null)` | Nearest scroller |
+| `scrollCascade` | Coordinates additional scroll containers.<br>Type: `Array<{ container; offset?; mode?; padding? }>` | `[]` |
+| `scrollOffset` | Sets the offset from the scroll target's top edge.<br>Type: `number` | `0` |
+| `scrollDurationMs` | Sets the scroll animation duration in milliseconds.<br>Type: `number` | `450` |
+| `scrollSpacerTarget` | Chooses where temporary scroll space is added.<br>Type: `'self' \| 'container' \| 'none'` | `'self'` |
+| `scrollOvershootPx` | Sets the overshoot used during animated alignment.<br>Type: `number` | `12` |
+| `magicMotion` | Enables layout and parallax transitions.<br>Type: `boolean` | `false` |
+| `parallaxOffset` | Sets the top and bottom translation distance in pixels.<br>Type: `number` | `10` |
+| `revealBlurPx` | Sets the content blur used during transitions.<br>Type: `number` | `6` |
 
-## Lifecycle And Accessibility
+### Render props and hook state
 
-| Concern | Behavior |
-| --- | --- |
-| Lifecycle phases | `closed`, `opening`, `open`, and `closing` are exposed through render props and `useRevealPanelState()` |
-| Region semantics | The revealed subtree uses `role="region"` and binds to the active trigger when possible |
-| Explicit controls | `RevealTrigger` and `RevealClose` expose `data-state`, `data-phase`, and `data-disabled` |
-| Delegated controls | Non-button delegated triggers receive button semantics, focusability, and ARIA wiring |
-| Focus return | Closing restores focus to the last trigger unless disabled globally or per close call |
-| Reduced motion | Motion and coordinated scroll timing simplify automatically in reduced-motion environments |
+| Field | Type | Description |
+| --- | --- | --- |
+| `isOpen` | `boolean` | Resolved open state |
+| `phase` | `RevealPhase` | Current transition phase |
+| `disabled` | `boolean` | Whether panel controls are disabled; hook only |
+| `contentId` | `string` | Stable ID for the content region |
+| `triggerId` | `string \| undefined` | ID of the active trigger |
+| `open()` | `() => void` | Opens the panel |
+| `close(options?)` | `(options?: CloseOptions) => void` | Requests a close |
+| `error` | `RevealError \| null` | Current normalized error |
+| `hasError` | `boolean` | Whether an error is active |
+| `reportError(value)` | `(value: unknown) => void` | Reports and displays an error |
+| `clearError()` | `() => void` | Clears the error |
 
-## Upgrade From Older Prereleases
+`close()` accepts `{ restoreFocus?: boolean, propagate?: boolean }`.
 
-`RevealSplitter` has been removed from the public package surface. If older prerelease code imported it, rename that import to `RevealPanel`.
+`RevealTrigger` and `RevealClose` accept standard button props plus `asChild`. With `asChild`, props and behavior are merged into the child element through Radix Slot.
 
-```tsx
-// Before
-import { RevealSplitter } from 'reveal-ui'
+`RevealGroup` accepts `children` and an optional `closeSiblings` boolean, which defaults to `true`.
 
-// After
-import { RevealPanel } from 'reveal-ui'
+## Accessibility and styling
+
+- Triggers receive `aria-expanded` and `aria-controls`.
+- Revealed content uses `role="region"` and is labelled by its active trigger when possible.
+- Error messages use `role="alert"`; the header badge is hidden from assistive technology.
+- Focus returns to the last trigger by default.
+- Reduced-motion preferences disable or simplify motion and scrolling.
+- Delegated non-button controls receive button semantics and keyboard support.
+
+Use the state attributes to style any panel state:
+
+```css
+[data-reveal-scope][data-state='open'] { /* open panel */ }
+[data-reveal-scope][data-phase='closing'] { /* closing panel */ }
+[data-reveal-scope][data-error] { /* error panel */ }
+[data-reveal-scope][data-disabled] { /* disabled panel */ }
 ```
 
-## Validation
+The scope, top region, revealed content, bottom region, and controls expose the relevant `data-state`, `data-phase`, `data-error`, and `data-disabled` attributes.
 
-| Command | Purpose |
-| --- | --- |
-| `npm run lint` | Static checks with Biome |
-| `npm run test` | Unit and docs-surface tests |
-| `npm run test:coverage` | Generates coverage output for CI and Codecov |
-| `npm run typecheck` | TypeScript validation |
-| `npm run build` | ESM, CJS, and type output |
-| `npm run pack:dry-run` | Shows the exact npm tarball contents |
-| `npm run smoke` | Installs the packed tarball into a clean temp consumer and verifies `require()` and `import()` |
-| `npm run ci` | Full release gate used before publish |
+## Migrating from prereleases
 
-## Local Example
+`RevealSplitter` was removed. Replace it with `RevealPanel`:
 
-The repository includes a small Next.js consumer in `examples/next-app`.
+```diff
+- import { RevealSplitter } from 'reveal-ui'
++ import { RevealPanel } from 'reveal-ui'
+```
+
+## Development
 
 ```bash
-npm run docs:install
+npm install
+npm run ci
 npm run docs:preview
 ```
-
-- Repository: [github.com/HackEAC/reveal-ui](https://github.com/HackEAC/reveal-ui)
-- Website: [hackeac.github.io/reveal-ui](https://hackeac.github.io/reveal-ui)
-- Discussions: [github.com/HackEAC/reveal-ui/discussions](https://github.com/HackEAC/reveal-ui/discussions)
 
 ## License
 
